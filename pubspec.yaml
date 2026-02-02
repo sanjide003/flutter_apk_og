@@ -1,5 +1,5 @@
-name: sanjid_app
-description: "A new Flutter project."
+name: sanjid_app ds-1
+description: "A new Flutter project.ds-2"
 publish_to: 'none'
 
 version: 1.0.0+1
@@ -31,3 +31,4 @@ flutter:
 
   assets:
     - assets/
+
