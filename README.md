@@ -9,6 +9,10 @@ This project is prewired to initialize Firebase for Flutter Web using the
 to generate platform-specific options and update `DefaultFirebaseOptions` for those
 targets.
 
+## MVP documentation
+
+See `docs/MVP.md` for the current MVP scope and file responsibilities.
+
 ## Getting Started
 
 This project is a starting point for a Flutter application.
