@@ -2,6 +2,13 @@
 
 A new Flutter project.
 
+## Firebase setup
+
+This project is prewired to initialize Firebase for Flutter Web using the
+`firebase_options.dart` configuration. For Android/iOS, run `flutterfire configure`
+to generate platform-specific options and update `DefaultFirebaseOptions` for those
+targets.
+
 ## Getting Started
 
 This project is a starting point for a Flutter application.
