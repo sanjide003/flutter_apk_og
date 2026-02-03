@@ -17,6 +17,14 @@ class AppTheme {
       primaryColor: primaryColor,
       scaffoldBackgroundColor: backgroundColor,
       
+      // കളർ സ്കീം (Material 3 Support)
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: primaryColor,
+        primary: primaryColor,
+        secondary: secondaryColor,
+        background: backgroundColor,
+      ),
+      
       // ഫോണ്ട് സ്റ്റൈൽ (Font Style - Google Fonts)
       textTheme: GoogleFonts.notoSansTextTheme().copyWith(
         displayLarge: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: textDark),
@@ -71,4 +79,4 @@ class AppTheme {
       ),
     );
   }
-}a
+}
