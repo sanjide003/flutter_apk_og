@@ -17,7 +17,7 @@ class AppTheme {
       primaryColor: primaryColor,
       scaffoldBackgroundColor: backgroundColor,
       
-      // കളർ സ്കീം (Material 3 Support)
+      // കളർ സ്കീം
       colorScheme: ColorScheme.fromSeed(
         seedColor: primaryColor,
         primary: primaryColor,
@@ -25,7 +25,7 @@ class AppTheme {
         background: backgroundColor,
       ),
       
-      // ഫോണ്ട് സ്റ്റൈൽ (Font Style - Google Fonts)
+      // ഫോണ്ട് സ്റ്റൈൽ
       textTheme: GoogleFonts.notoSansTextTheme().copyWith(
         displayLarge: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: textDark),
         displayMedium: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: textDark),
@@ -33,7 +33,7 @@ class AppTheme {
         bodyMedium: const TextStyle(fontSize: 14, color: textLight),
       ),
 
-      // ബട്ടൺ സ്റ്റൈൽ (Button Style)
+      // ബട്ടൺ സ്റ്റൈൽ
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: primaryColor,
@@ -44,15 +44,10 @@ class AppTheme {
         ),
       ),
 
-      // കാർഡ് സ്റ്റൈൽ (Card Style)
-      cardTheme: CardTheme(
-        color: white,
-        elevation: 2,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-      ),
+      // എറർ ഒഴിവാക്കാൻ CardTheme ഇവിടെ നിന്നും മാറ്റിയിട്ടുണ്ട്.
+      // Default Material Card Style ഉപയോഗിക്കും.
 
-      // ഇൻപുട്ട് ഫീൽഡ് സ്റ്റൈൽ (Input Decoration)
+      // ഇൻപുട്ട് ഫീൽഡ് സ്റ്റൈൽ
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: white,
