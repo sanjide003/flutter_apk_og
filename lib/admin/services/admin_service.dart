@@ -3,7 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class AdminService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
-  // --- 1. ACADEMIACADEMICC YEAR ---
+  // --- 1. ACADEMIC YEAR ---
   Future<void> addAcademicYear(String name, DateTime start, DateTime end) async {
     await _deactivateAllYears();
     await _db.collection('academic_years').add({
@@ -42,17 +42,13 @@ class AdminService {
   Future<void> deleteStaff(String docId) async => await _db.collection('users').doc(docId).delete();
   Stream<QuerySnapshot> getStaffList() => _db.collection('users').orderBy('createdAt', descending: true).snapshots();
 
-  // --- 3. STUDENT MANAGEMENT (ADVANCED LOGIC) ---
+  // --- 3. STUDENT MANAGMANAGEMENTEMENT (IMPROVED) ---
 
-  // ലോജിക്: ഓരോ ക്ലാസ്സിലെയും ഓരോ ജെൻഡറിനും ക്രമനമ്പർ 1 ൽ തുടങ്ങണം.
-  // ഉദാഹരണത്തിന്: 10A - Male - 1, 10A - Male - 2, 10A - Female - 1...
   Future<int> _generateNextSerialNo(String className, String gender) async {
     final snapshot = await _db.collection('students')
         .where('className', isEqualTo: className)
         .where('gender', isEqualTo: gender)
         .get();
-    
-    // നിലവിലുള്ള എണ്ണം എടുക്കുന്നു + 1
     return snapshot.docs.length + 1;
   }
 
@@ -66,11 +62,10 @@ class AdminService {
     String? phone,
     String? address,
   }) async {
-    // 1. സീരിയൽ നമ്പർ കണ്ടുപിടിക്കുന്നു
     int serialNo = await _generateNextSerialNo(className, gender);
 
     await _db.collection('students').add({
-      'serialNo': serialNo, // ഓട്ടോമാറ്റിക് ക്രമനമ്പർ
+      'serialNo': serialNo,
       'name': name,
       'gender': gender,
       'className': className,
@@ -83,57 +78,38 @@ class AdminService {
     });
   }
 
-  // Update Student
   Future<void> updateStudent(String docId, Map<String, dynamic> data) async {
     await _db.collection('students').doc(docId).update(data);
   }
 
-  // Delete Student
   Future<void> deleteStudent(String docId) async {
     await _db.collection('students').doc(docId).delete();
   }
 
-  // Bulk Add Students (Updated)
-  // Data format expected: Name, ParentName, Phone, UID, Address (Comma separated or just Name)
-  Future<void> addBulkStudents(String className, String gender, List<String> lines) async {
+  // Updated Bulk Add Logic (Receives List of Maps)
+  Future<void> addBulkStudents(String className, String gender, List<Map<String, String>> studentsData) async {
     final batch = _db.batch();
-    
-    // നിലവിലെ സീരിയൽ നമ്പർ എടുക്കുന്നു
     int currentSerial = await _generateNextSerialNo(className, gender);
 
-    for (String line in lines) {
-      if (line.trim().isEmpty) continue;
-
-      // കോമ ഇട്ട് തിരിച്ചാണ് ഡാറ്റ എങ്കിൽ (CSV Style)
-      List<String> parts = line.split(',');
-      
-      String name = parts[0].trim();
-      String parent = parts.length > 1 ? parts[1].trim() : "";
-      String phone = parts.length > 2 ? parts[2].trim() : "";
-      String uid = parts.length > 3 ? parts[3].trim() : "";
-      String address = parts.length > 4 ? parts[4].trim() : "";
-
+    for (var student in studentsData) {
       var docRef = _db.collection('students').doc();
-      
       batch.set(docRef, {
         'serialNo': currentSerial,
-        'name': name,
         'className': className,
         'gender': gender,
-        'parentName': parent,
-        'phone': phone,
-        'uidNumber': uid,
-        'address': address,
+        'name': student['name'] ?? "",
+        'parentName': student['parent'] ?? "",
+        'phone': student['phone'] ?? "",
+        'uidNumber': student['uid'] ?? "",
+        'address': student['address'] ?? "",
         'isActive': true,
         'createdAt': FieldValue.serverTimestamp(),
       });
-
-      currentSerial++; // അടുത്ത കുട്ടിക്ക് നമ്പർ കൂട്ടുന്നു
+      currentSerial++;
     }
     await batch.commit();
   }
   
-  // ഓർഡർ ചെയ്യുന്നത്: ക്ലാസ്സ് -> ജെൻഡർ -> ക്രമനമ്പർ
   Stream<QuerySnapshot> getStudents() {
     return _db.collection('students')
         .orderBy('className')
