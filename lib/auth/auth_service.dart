@@ -1,84 +1,93 @@
-import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AuthService {
-  final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _db = FirebaseFirestore.instance;
 
-  // --- MOCK DATA ---
-  final List<String> _dummyClasses = [
-    "Class 8 A", "Class 8 B", 
-    "Class 9 A", "Class 9 B", 
-    "Class 10 A", "Class 10 B", 
-    "+1 Science", "+1 Commerce", "+1 Humanities",
-    "+2 Science", "+2 Commerce", "+2 Humanities"
-  ];
-
-  final Map<String, List<String>> _dummyStudents = {
-    "Class 10 A": ["Arjun", "Anjali", "Adwaith", "Bimal", "Chandana"],
-    "Class 10 B": ["Rahul", "Rohit", "Reshma", "Sruthi", "Varun"],
-    "+2 Science": ["Fathima", "Gokul", "Harikrishnan", "Ishaan"],
-  };
-
-  final List<String> _dummyStaff = [
-    "Principal User",
-    "Manager User",
-    "Rahul Teacher",
-    "Sruthi Teacher",
-    "Accountant",
-    "Clerk"
-  ];
-
-  // --- FUNCTIONS ---
-
-  Future<List<String>> getClasses() async {
-    await Future.delayed(const Duration(milliseconds: 500));
-    return _dummyClasses;
-  }
-
-  Future<List<String>> getStudentsByClass(String className) async {
-    await Future.delayed(const Duration(milliseconds: 500));
-    return _dummyStudents[className] ?? [];
-  }
-
+  // 1. ലോഗിൻ പേജിലെ ലിസ്റ്റിലേക്ക് സ്റ്റാഫുകളെ വിളിക്കുന്നു
   Future<List<String>> getStaffList() async {
-    await Future.delayed(const Duration(milliseconds: 500));
-    return _dummyStaff;
-  }
+    try {
+      // 'users' കളക്ഷനിൽ നിന്നും സ്റ്റാഫിനെ എടുക്കുന്നു
+      // (role: admin or staff)
+      final snapshot = await _db.collection('users')
+          .where('role', whereIn: ['admin', 'staff'])
+          .get();
 
-  // --- REAL FIREBASE LOGIN IMPLEMENTATION ---
-
-  // 1. Staff / Admin Login
-  Future<String> loginStaff(String name, String password) async {
-    // അഡ്മിൻ ലോഗിൻ പരിശോധന
-    if (name == "Principal User" || name == "Manager User") {
-      // ഇവിടെ try-catch ഒഴിവാക്കി, എറർ വന്നാൽ അത് നേരിട്ട് UI-ലേക്ക് പോകും
-      await _firebaseAuth.signInWithEmailAndPassword(
-        email: "dsd003@gmail.com", 
-        password: password
-      );
-      return "admin"; 
-    } 
-    
-    // സാധാരണ സ്റ്റാഫ് ലോഗിൻ
-    else if (password == "password") {
-      return "staff";
+      List<String> staffNames = snapshot.docs.map((doc) => doc['name'] as String).toList();
+      
+      // ഡാറ്റാബേസ് ശൂന്യമാണെങ്കിൽ (ആദ്യത്തെ തവണ) അഡ്മിനെ കാണിക്കാൻ
+      if (staffNames.isEmpty) {
+        return ["Principal User"]; 
+      }
+      
+      // അല്ലെങ്കിൽ ലിസ്റ്റിലേക്ക് "Principal User" കൂടി ചേർക്കുക (എപ്പോഴും ലോഗിൻ ചെയ്യാൻ)
+      if (!staffNames.contains("Principal User")) {
+        staffNames.insert(0, "Principal User");
+      }
+      
+      return staffNames;
+    } catch (e) {
+      print("Error fetching staff: $e");
+      // എറർ വന്നാൽ അഡ്മിൻ പേര് മാത്രം കാണിക്കും
+      return ["Principal User"];
     }
-    
-    // പാസ്‌വേഡ് തെറ്റാണെങ്കിൽ എറർ ത്രോ ചെയ്യുന്നു
-    throw Exception("Invalid Username or Password");
   }
 
-  // 2. Student Login
-  Future<bool> loginStudent(String className, String name, String phone) async {
-    await Future.delayed(const Duration(seconds: 2));
-    if (phone == "123456") return true;
-    return false;
+  // 2. ക്ലാസ്സുകൾ എടുക്കുന്നു (ഇപ്പോൾ ശൂന്യമായിരിക്കും)
+  Future<List<String>> getClasses() async {
+    try {
+      final snapshot = await _db.collection('academic_years')
+          .where('isActive', isEqualTo: true)
+          .get();
+      
+      // ഇവിടെ ലോജിക് പിന്നീട് എഴുതാം, ഇപ്പോൾ Empty List
+      return []; 
+    } catch (e) {
+      return [];
+    }
   }
 
-  // 3. Logout
+  // 3. സ്റ്റാഫ് ലോഗിൻ (Real Auth)
+  Future<String> loginStaff(String name, String password) async {
+    try {
+      String email = "";
+
+      // കേസ് 1: അഡ്മിൻ (Principal User)
+      if (name == "Principal User") {
+        email = "dsd003@gmail.com";
+      } 
+      // കേസ് 2: മറ്റ് സ്റ്റാഫുകൾ (Database-ൽ നിന്ന് ഇമെയിൽ കണ്ടുപിടിക്കുന്നു)
+      else {
+        final snapshot = await _db.collection('users')
+            .where('name', isEqualTo: name)
+            .limit(1)
+            .get();
+            
+        if (snapshot.docs.isEmpty) {
+          throw Exception("User not found in database");
+        }
+        email = snapshot.docs.first['email'];
+      }
+
+      // ഫയർബേസ് ഓതന്റിക്കേഷൻ
+      await _auth.signInWithEmailAndPassword(email: email, password: password);
+      
+      // വിജയിച്ചാൽ റോൾ തിരിച്ചയക്കുന്നു
+      if (name == "Principal User") return "admin";
+      
+      // മറ്റുള്ളവരുടെ റോൾ ചെക്ക് ചെയ്യുന്നു (ബാക്കി കോഡ് പിന്നീട്)
+      return "staff";
+
+    } on FirebaseAuthException catch (e) {
+      throw Exception(e.message);
+    } catch (e) {
+      throw Exception(e.toString());
+    }
+  }
+
+  // 4. ലോഗൗട്ട്
   Future<void> logout() async {
-    await _firebaseAuth.signOut();
+    await _auth.signOut();
   }
-  
-  User? get currentUser => _firebaseAuth.currentUser;
 }
