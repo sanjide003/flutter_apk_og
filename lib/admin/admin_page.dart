@@ -16,22 +16,24 @@ class AdminPage extends StatefulWidget {
 
 class _AdminPageState extends State<AdminPage> {
   int _selectedIndex = 0;
+  
+  // നാവിഗേഷൻ ഹിസ്റ്ററി (ബാക്ക് അടിക്കുമ്പോൾ പഴയ ടാബിലേക്ക് പോകാൻ)
   final List<int> _navHistory = [0]; 
   final User? currentUser = FirebaseAuth.instance.currentUser;
 
-  // ALL TABS IMPLEMENTED
+  // എല്ലാ ടാബുകളും ഇവിടെ ലിങ്ക് ചെയ്തിരിക്കുന്നു
   final List<Widget> _tabs = [
-    const DashboardTab(),
-    const AcademicYearTab(),
-    const HrManagementTab(),
-    const StudentManagementTab(),
-    const FeeStructureTab(), // Fee Structure
-    const Center(child: Text("Fee Assignment (Use Student Profile)")), // Placeholder for complex logic
-    const Center(child: Text("Fee Collection (Use Staff App)")), // Placeholder
-    const NoticesTab(), // Notices
-    const Center(child: Text("Reports (Coming Soon)")),
-    const Center(child: Text("Public Content (Coming Soon)")),
-    const Center(child: Text("Settings")),
+    const DashboardTab(),          // 0
+    const AcademicYearTab(),       // 1
+    const HrManagementTab(),       // 2
+    const StudentManagementTab(),  // 3
+    const FeeStructureTab(),       // 4
+    const Center(child: Text("Fee Assignment (Use Student Profile)")), // 5 (Placeholder)
+    const Center(child: Text("Fee Collection (Use Staff App)")),       // 6 (Placeholder)
+    const NoticesTab(),            // 7
+    const Center(child: Text("Reports (Coming Soon)")),                // 8
+    const Center(child: Text("Public Content (Coming Soon)")),         // 9
+    const Center(child: Text("Settings")),                             // 10
   ];
 
   final List<String> _titles = [
@@ -43,7 +45,7 @@ class _AdminPageState extends State<AdminPage> {
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      canPop: false,
+      canPop: false, // ബാക്ക് ബട്ടൺ നമ്മൾ കൈകാര്യം ചെയ്യുന്നു
       onPopInvoked: (didPop) {
         if (didPop) return;
         if (_navHistory.length > 1) {
@@ -52,6 +54,7 @@ class _AdminPageState extends State<AdminPage> {
             _selectedIndex = _navHistory.last;
           });
         } else {
+          // ഡാഷ്ബോർഡിൽ എത്തിയാൽ ആപ്പ് ക്ലോസ് ചെയ്യാം
           Navigator.of(context).pop();
         }
       },
@@ -61,6 +64,7 @@ class _AdminPageState extends State<AdminPage> {
           actions: [
             IconButton(
               icon: const Icon(Icons.logout),
+              tooltip: "Logout",
               onPressed: () async {
                 await FirebaseAuth.instance.signOut();
                 if (mounted) Navigator.pushNamedAndRemoveUntil(context, '/login', (r) => false);
@@ -75,7 +79,11 @@ class _AdminPageState extends State<AdminPage> {
               UserAccountsDrawerHeader(
                 accountName: const Text("Administrator"),
                 accountEmail: Text(currentUser?.email ?? "Admin Access"),
-                currentAccountPicture: const CircleAvatar(child: Icon(Icons.admin_panel_settings)),
+                currentAccountPicture: const CircleAvatar(
+                  backgroundColor: Colors.white,
+                  child: Icon(Icons.admin_panel_settings, size: 40, color: Colors.blue),
+                ),
+                decoration: BoxDecoration(color: Theme.of(context).primaryColor),
               ),
               _item(0, Icons.dashboard, "Dashboard"),
               _item(1, Icons.calendar_today, "Academic Year"),
@@ -102,7 +110,13 @@ class _AdminPageState extends State<AdminPage> {
     bool selected = _selectedIndex == index;
     return ListTile(
       leading: Icon(icon, color: selected ? Colors.blue : Colors.grey),
-      title: Text(title, style: TextStyle(color: selected ? Colors.blue : Colors.black, fontWeight: selected ? FontWeight.bold : FontWeight.normal)),
+      title: Text(
+        title,
+        style: TextStyle(
+          color: selected ? Colors.blue : Colors.black,
+          fontWeight: selected ? FontWeight.bold : FontWeight.normal
+        ),
+      ),
       selected: selected,
       selectedTileColor: Colors.blue.withOpacity(0.1),
       onTap: () {
