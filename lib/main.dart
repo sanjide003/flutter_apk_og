@@ -26,11 +26,13 @@ class _InstitutionAppState extends State<InstitutionApp> {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Institution OS',
-      theme: AppTheme.lightTheme, // Theme എറർ പരിഹരിച്ച ഫയൽ ആണെന്ന് ഉറപ്പാക്കുക
+      
+      // Updated App Name
+      title: 'Fee edusy',
+      
+      theme: AppTheme.lightTheme,
       
       // FutureBuilder ഉപയോഗിക്കുന്നു
-      // ഫയർബേസ് റെഡി ആയോ എന്ന് നോക്കും
       home: FutureBuilder(
         future: _initialization,
         builder: (context, snapshot) {
@@ -63,7 +65,7 @@ class _InstitutionAppState extends State<InstitutionApp> {
                 children: [
                   CircularProgressIndicator(),
                   SizedBox(height: 20),
-                  Text("Institution OS Loading..."),
+                  Text("Fee edusy Loading..."),
                 ],
               ),
             ),
