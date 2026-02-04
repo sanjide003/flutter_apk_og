@@ -25044,7 +25044,7 @@ if(m.f!==B.jV){m.f=B.jV
 m.BB()}}return m.d.a.IG(a)},
 BB(){var s,r
 for(s=this.w,r=0;r<s.length;++r)s[r].$1(this.f)},
-ID(a){if(B.b.q(B.AE,a))return this.f===B.e5
+ID(a){if(B.b.q(B.AD,a))return this.f===B.e5
 return!1}}
 A.NQ.prototype={
 $0(){return new A.iM(Date.now(),0,!1)},
@@ -48165,7 +48165,7 @@ A.jg.prototype={}
 A.Bi.prototype={
 hF(a,b){var s,r,q,p,o,n=$.aK.aS$.d.c
 if(n==null||n.e==null)return!1
-for(s=t.q,r=0;r<2;++r){q=B.AF[r]
+for(s=t.q,r=0;r<2;++r){q=B.AE[r]
 p=n.e
 p.toString
 o=A.a5J(p,q,s)
@@ -56615,7 +56615,7 @@ A.r4.prototype={
 an(){return new A.FP(A.Og(A.aii()))}}
 A.FP.prototype={
 P(a){var s=null,r=A.a9d(B.jq,B.J,s,B.bc,B.xl,B.bc),q=A.aqL().$0().Vx(B.IM,B.J1,B.HN,B.IA),p=A.a9I(s,s,B.bc,s,s,s,s,s,s,B.i,s,s,B.yC,s,new A.cM(A.mk(8),B.r),s,s,s,B.uP,s),o=A.mk(8),n=A.mk(8),m=A.mk(8)
-return new A.rt(new A.mQ(this.d,new A.a1i(),s,t.i8),"Institution OS",A.YW(B.vq,s,r,new A.mH(p),new A.A5(B.jR,B.j4,!1,B.yz,!1,!0,B.i,new A.eL(4,m,B.vC),new A.eL(4,n,new A.bn(B.fx,1,B.F,-1)),new A.eL(4,o,B.vB),!1,B.d6,s),B.bc,B.jq,q,s),!1,s)}}
+return new A.rt(new A.mQ(this.d,new A.a1i(),s,t.i8),"Fee edusy",A.YW(B.vq,s,r,new A.mH(p),new A.A5(B.jR,B.j4,!1,B.yz,!1,!0,B.i,new A.eL(4,m,B.vC),new A.eL(4,n,new A.bn(B.fx,1,B.F,-1)),new A.eL(4,o,B.vB),!1,B.d6,s),B.bc,B.jq,q,s),!1,s)}}
 A.a1i.prototype={
 $2(a,b){var s=null,r=b.c
 if(r!=null)return A.abh(s,A.yk(new A.fe(B.yB,A.abG("Something went wrong!\n\n"+A.m(r),B.JL,B.d8),s),s,s))
@@ -59279,11 +59279,11 @@ B.v4=new A.nZ(2,"bottomLeft")
 B.LF=new A.ip(B.v3,B.v4)
 B.LG=new A.ip(B.v4,B.v3)
 B.AB=s([B.LE,B.LH,B.LF,B.LG],A.a7("v<ip>"))
-B.AE=s(["click","scroll"],t.s)
+B.AD=s(["click","scroll"],t.s)
 B.vL=new A.me()
 B.u_=new A.Co(1,"page")
 B.hR=new A.en(B.dr,B.u_)
-B.AF=s([B.vL,B.hR],A.a7("v<an>"))
+B.AE=s([B.vL,B.hR],A.a7("v<an>"))
 B.AL=s([],t.EQ)
 B.k6=s([],A.a7("v<arg>"))
 B.AR=s([],t.p)
@@ -59893,7 +59893,7 @@ B.Ao=s([B.au,null,null,B.bl],t.L)
 B.B0=s([B.aI,null,null,B.bm],t.L)
 B.AV=s([B.hm,null,null,B.hu],t.L)
 B.Ae=s([B.cH,B.cH,B.ei,null],t.L)
-B.AD=s([B.a2,null,null,B.bi],t.L)
+B.AC=s([B.a2,null,null,B.bi],t.L)
 B.Ap=s([B.bg,null,null,B.cL],t.L)
 B.A9=s([B.ee,null,null,B.hs],t.L)
 B.Aq=s([B.bh,null,null,B.cN],t.L)
@@ -59902,7 +59902,7 @@ B.Af=s([B.cK,B.cK,B.el,null],t.L)
 B.Ar=s([B.cF,null,null,B.cM],t.L)
 B.AG=s([B.cG,null,null,B.cO],t.L)
 B.Ag=s([B.cI,B.cI,B.ej,null],t.L)
-B.CK=new A.c6(["*",B.A6,"+",B.AS,"-",B.Al,".",B.Ay,"/",B.zD,"0",B.AZ,"1",B.AY,"2",B.Ac,"3",B.B1,"4",B.AX,"5",B.Ab,"6",B.zF,"7",B.Ai,"8",B.AT,"9",B.AU,"Alt",B.Ad,"AltGraph",B.B_,"ArrowDown",B.Am,"ArrowLeft",B.An,"ArrowRight",B.Ao,"ArrowUp",B.B0,"Clear",B.AV,"Control",B.Ae,"Delete",B.AD,"End",B.Ap,"Enter",B.A9,"Home",B.Aq,"Insert",B.AW,"Meta",B.Af,"PageDown",B.Ar,"PageUp",B.AG,"Shift",B.Ag],A.a7("c6<q,I<e?>>"))
+B.CK=new A.c6(["*",B.A6,"+",B.AS,"-",B.Al,".",B.Ay,"/",B.zD,"0",B.AZ,"1",B.AY,"2",B.Ac,"3",B.B1,"4",B.AX,"5",B.Ab,"6",B.zF,"7",B.Ai,"8",B.AT,"9",B.AU,"Alt",B.Ad,"AltGraph",B.B_,"ArrowDown",B.Am,"ArrowLeft",B.An,"ArrowRight",B.Ao,"ArrowUp",B.B0,"Clear",B.AV,"Control",B.Ae,"Delete",B.AC,"End",B.Ap,"Enter",B.A9,"Home",B.Aq,"Insert",B.AW,"Meta",B.Af,"PageDown",B.Ar,"PageUp",B.AG,"Shift",B.Ag],A.a7("c6<q,I<e?>>"))
 B.Df={KeyA:0,KeyB:1,KeyC:2,KeyD:3,KeyE:4,KeyF:5,KeyG:6,KeyH:7,KeyI:8,KeyJ:9,KeyK:10,KeyL:11,KeyM:12,KeyN:13,KeyO:14,KeyP:15,KeyQ:16,KeyR:17,KeyS:18,KeyT:19,KeyU:20,KeyV:21,KeyW:22,KeyX:23,KeyY:24,KeyZ:25,Digit1:26,Digit2:27,Digit3:28,Digit4:29,Digit5:30,Digit6:31,Digit7:32,Digit8:33,Digit9:34,Digit0:35,Minus:36,Equal:37,BracketLeft:38,BracketRight:39,Backslash:40,Semicolon:41,Quote:42,Backquote:43,Comma:44,Period:45,Slash:46}
 B.p9=new A.bk(B.Df,["a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z","1","2","3","4","5","6","7","8","9","0","-","=","[","]","\\",";","'","`",",",".","/"],t.hD)
 B.Dc={Abort:0,Again:1,AltLeft:2,AltRight:3,ArrowDown:4,ArrowLeft:5,ArrowRight:6,ArrowUp:7,AudioVolumeDown:8,AudioVolumeMute:9,AudioVolumeUp:10,Backquote:11,Backslash:12,Backspace:13,BracketLeft:14,BracketRight:15,BrightnessDown:16,BrightnessUp:17,BrowserBack:18,BrowserFavorites:19,BrowserForward:20,BrowserHome:21,BrowserRefresh:22,BrowserSearch:23,BrowserStop:24,CapsLock:25,Comma:26,ContextMenu:27,ControlLeft:28,ControlRight:29,Convert:30,Copy:31,Cut:32,Delete:33,Digit0:34,Digit1:35,Digit2:36,Digit3:37,Digit4:38,Digit5:39,Digit6:40,Digit7:41,Digit8:42,Digit9:43,DisplayToggleIntExt:44,Eject:45,End:46,Enter:47,Equal:48,Escape:49,Esc:50,F1:51,F10:52,F11:53,F12:54,F13:55,F14:56,F15:57,F16:58,F17:59,F18:60,F19:61,F2:62,F20:63,F21:64,F22:65,F23:66,F24:67,F3:68,F4:69,F5:70,F6:71,F7:72,F8:73,F9:74,Find:75,Fn:76,FnLock:77,GameButton1:78,GameButton10:79,GameButton11:80,GameButton12:81,GameButton13:82,GameButton14:83,GameButton15:84,GameButton16:85,GameButton2:86,GameButton3:87,GameButton4:88,GameButton5:89,GameButton6:90,GameButton7:91,GameButton8:92,GameButton9:93,GameButtonA:94,GameButtonB:95,GameButtonC:96,GameButtonLeft1:97,GameButtonLeft2:98,GameButtonMode:99,GameButtonRight1:100,GameButtonRight2:101,GameButtonSelect:102,GameButtonStart:103,GameButtonThumbLeft:104,GameButtonThumbRight:105,GameButtonX:106,GameButtonY:107,GameButtonZ:108,Help:109,Home:110,Hyper:111,Insert:112,IntlBackslash:113,IntlRo:114,IntlYen:115,KanaMode:116,KeyA:117,KeyB:118,KeyC:119,KeyD:120,KeyE:121,KeyF:122,KeyG:123,KeyH:124,KeyI:125,KeyJ:126,KeyK:127,KeyL:128,KeyM:129,KeyN:130,KeyO:131,KeyP:132,KeyQ:133,KeyR:134,KeyS:135,KeyT:136,KeyU:137,KeyV:138,KeyW:139,KeyX:140,KeyY:141,KeyZ:142,KeyboardLayoutSelect:143,Lang1:144,Lang2:145,Lang3:146,Lang4:147,Lang5:148,LaunchApp1:149,LaunchApp2:150,LaunchAssistant:151,LaunchControlPanel:152,LaunchMail:153,LaunchScreenSaver:154,MailForward:155,MailReply:156,MailSend:157,MediaFastForward:158,MediaPause:159,MediaPlay:160,MediaPlayPause:161,MediaRecord:162,MediaRewind:163,MediaSelect:164,MediaStop:165,MediaTrackNext:166,MediaTrackPrevious:167,MetaLeft:168,MetaRight:169,MicrophoneMuteToggle:170,Minus:171,NonConvert:172,NumLock:173,Numpad0:174,Numpad1:175,Numpad2:176,Numpad3:177,Numpad4:178,Numpad5:179,Numpad6:180,Numpad7:181,Numpad8:182,Numpad9:183,NumpadAdd:184,NumpadBackspace:185,NumpadClear:186,NumpadClearEntry:187,NumpadComma:188,NumpadDecimal:189,NumpadDivide:190,NumpadEnter:191,NumpadEqual:192,NumpadMemoryAdd:193,NumpadMemoryClear:194,NumpadMemoryRecall:195,NumpadMemoryStore:196,NumpadMemorySubtract:197,NumpadMultiply:198,NumpadParenLeft:199,NumpadParenRight:200,NumpadSubtract:201,Open:202,PageDown:203,PageUp:204,Paste:205,Pause:206,Period:207,Power:208,PrintScreen:209,PrivacyScreenToggle:210,Props:211,Quote:212,Resume:213,ScrollLock:214,Select:215,SelectTask:216,Semicolon:217,ShiftLeft:218,ShiftRight:219,ShowAllWindows:220,Slash:221,Sleep:222,Space:223,Super:224,Suspend:225,Tab:226,Turbo:227,Undo:228,WakeUp:229,ZoomToggle:230}
@@ -60307,9 +60307,9 @@ B.ik=new A.Zr(1,"down")
 B.MQ=new A.ZN(0,"material")
 B.x0=new A.pD(null)
 B.ux=new A.js(null,20,null,null)
-B.Kw=new A.ic("Institution OS Loading...",null,null,null,null)
-B.AC=s([B.x0,B.ux,B.Kw],t.nA)
-B.xW=new A.pN(B.ds,B.hx,B.hy,B.bd,null,B.ik,null,0,B.AC,null)
+B.Kw=new A.ic("Fee edusy Loading...",null,null,null,null)
+B.AF=s([B.x0,B.ux,B.Kw],t.nA)
+B.xW=new A.pN(B.ds,B.hx,B.hy,B.bd,null,B.ik,null,0,B.AF,null)
 B.wX=new A.pz(B.ac,null,null,B.xW,null)
 B.EO=new A.np(null,B.wX,null)
 B.c0=new A.lo(0,"idle")
