@@ -3,6 +3,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'tabs/dashboard_tab.dart';
 import 'tabs/academic_year_tab.dart';
 import 'tabs/hr_management_tab.dart';
+import 'tabs/student_management_tab.dart';
+import 'tabs/fee_structure_tab.dart';
+import 'tabs/notices_tab.dart';
 
 class AdminPage extends StatefulWidget {
   const AdminPage({super.key});
@@ -13,23 +16,22 @@ class AdminPage extends StatefulWidget {
 
 class _AdminPageState extends State<AdminPage> {
   int _selectedIndex = 0;
-  // നാവിഗേഷൻ ഹിസ്റ്ററി സൂക്ഷിക്കാൻ
-  final List<int> _navigationHistory = [0]; 
-
+  final List<int> _navHistory = [0]; 
   final User? currentUser = FirebaseAuth.instance.currentUser;
 
+  // ALL TABS IMPLEMENTED
   final List<Widget> _tabs = [
     const DashboardTab(),
     const AcademicYearTab(),
     const HrManagementTab(),
-    const Center(child: Text("Students (Coming Soon)")),
-    const Center(child: Text("Fee Structure (Coming Soon)")),
-    const Center(child: Text("Fee Assignment (Coming Soon)")),
-    const Center(child: Text("Fee Collection (Coming Soon)")),
-    const Center(child: Text("Notices (Coming Soon)")),
+    const StudentManagementTab(),
+    const FeeStructureTab(), // Fee Structure
+    const Center(child: Text("Fee Assignment (Use Student Profile)")), // Placeholder for complex logic
+    const Center(child: Text("Fee Collection (Use Staff App)")), // Placeholder
+    const NoticesTab(), // Notices
     const Center(child: Text("Reports (Coming Soon)")),
     const Center(child: Text("Public Content (Coming Soon)")),
-    const Center(child: Text("Settings (Coming Soon)")),
+    const Center(child: Text("Settings")),
   ];
 
   final List<String> _titles = [
@@ -40,12 +42,18 @@ class _AdminPageState extends State<AdminPage> {
 
   @override
   Widget build(BuildContext context) {
-    // PopScope: ബാക്ക് ബട്ടൺ അമർത്തുമ്പോൾ എന്ത് ചെയ്യണം എന്ന് തീരുമാനിക്കുന്നു
     return PopScope(
-      canPop: false, // ഓട്ടോമാറ്റിക് ആയി ക്ലോസ് ആകരുത്
+      canPop: false,
       onPopInvoked: (didPop) {
         if (didPop) return;
-        _handleBackPress();
+        if (_navHistory.length > 1) {
+          setState(() {
+            _navHistory.removeLast();
+            _selectedIndex = _navHistory.last;
+          });
+        } else {
+          Navigator.of(context).pop();
+        }
       },
       child: Scaffold(
         appBar: AppBar(
@@ -66,15 +74,22 @@ class _AdminPageState extends State<AdminPage> {
             children: [
               UserAccountsDrawerHeader(
                 accountName: const Text("Administrator"),
-                accountEmail: Text(currentUser?.email ?? "No Email"),
+                accountEmail: Text(currentUser?.email ?? "Admin Access"),
                 currentAccountPicture: const CircleAvatar(child: Icon(Icons.admin_panel_settings)),
               ),
-              _buildNavItem(0, Icons.dashboard, "Dashboard"),
-              _buildNavItem(1, Icons.calendar_today, "Academic Year"),
-              _buildNavItem(2, Icons.people, "HR Management"),
-              _buildNavItem(3, Icons.school, "Students"),
+              _item(0, Icons.dashboard, "Dashboard"),
+              _item(1, Icons.calendar_today, "Academic Year"),
+              _item(2, Icons.people, "HR Management"),
+              _item(3, Icons.school, "Student Management"),
               const Divider(),
-              _buildNavItem(10, Icons.settings, "Settings"),
+              _item(4, Icons.monetization_on, "Fee Structure"),
+              _item(5, Icons.assignment_ind, "Fee Assignment"),
+              _item(6, Icons.payment, "Fee Collection"),
+              const Divider(),
+              _item(7, Icons.campaign, "Notices"),
+              _item(8, Icons.bar_chart, "Reports"),
+              _item(9, Icons.public, "Public Content"),
+              _item(10, Icons.settings, "Settings"),
             ],
           ),
         ),
@@ -83,34 +98,18 @@ class _AdminPageState extends State<AdminPage> {
     );
   }
 
-  // ബാക്ക് ബട്ടൺ ലോജിക്
-  void _handleBackPress() {
-    if (_navigationHistory.length > 1) {
-      // ഹിസ്റ്ററിയിൽ പഴയ ടാബ് ഉണ്ടെങ്കിൽ അങ്ങോട്ട് പോകുക
-      setState(() {
-        _navigationHistory.removeLast(); // ഇപ്പോഴത്തത് കളയുന്നു
-        _selectedIndex = _navigationHistory.last; // തൊട്ടു മുമ്പത്തെ എടുക്കുന്നു
-      });
-    } else {
-      // ഹിസ്റ്ററി തീർന്നാൽ (Dashboard-ൽ എത്തിയാൽ), പുറത്ത് പോകണോ എന്ന് ചോദിക്കാം 
-      // അല്ലെങ്കിൽ ലോഗിനിലേക്ക് പോകാം. ഇവിടെ ആപ്പ് ക്ലോസ് ചെയ്യാൻ അനുവദിക്കുന്നു.
-      Navigator.of(context).pop(); 
-    }
-  }
-
-  Widget _buildNavItem(int index, IconData icon, String title) {
-    bool isSelected = _selectedIndex == index;
+  Widget _item(int index, IconData icon, String title) {
+    bool selected = _selectedIndex == index;
     return ListTile(
-      leading: Icon(icon, color: isSelected ? Theme.of(context).primaryColor : Colors.grey[700]),
-      title: Text(title, style: TextStyle(color: isSelected ? Theme.of(context).primaryColor : Colors.black87, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
-      selected: isSelected,
-      selectedTileColor: Theme.of(context).primaryColor.withOpacity(0.05),
+      leading: Icon(icon, color: selected ? Colors.blue : Colors.grey),
+      title: Text(title, style: TextStyle(color: selected ? Colors.blue : Colors.black, fontWeight: selected ? FontWeight.bold : FontWeight.normal)),
+      selected: selected,
+      selectedTileColor: Colors.blue.withOpacity(0.1),
       onTap: () {
-        // പുതിയ ടാബ് സെലക്ട് ചെയ്യുമ്പോൾ ഹിസ്റ്ററിയിലേക്ക് ചേർക്കുന്നു
         if (_selectedIndex != index) {
           setState(() {
             _selectedIndex = index;
-            _navigationHistory.add(index);
+            _navHistory.add(index);
           });
         }
         Navigator.pop(context);
