@@ -18,7 +18,6 @@ class DefaultFirebaseOptions {
     }
   }
 
-  // WEB CONFIGURATION
   static const FirebaseOptions web = FirebaseOptions(
     apiKey: "AIzaSyDcxrvgGTcc-w2LgY1Hc1Jy6EPs7fJGFJs",
     authDomain: "fee-apk-1.firebaseapp.com",
@@ -29,16 +28,15 @@ class DefaultFirebaseOptions {
     measurementId: "G-EFWCZCJRSL",
   );
 
-  // ANDROID CONFIGURATION (Updated with Web Keys for testing)
+  // ANDROID: Web Key ഉപയോഗിക്കുന്നു (Testing Only)
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: "AIzaSyDcxrvgGTcc-w2LgY1Hc1Jy6EPs7fJGFJs",
-    appId: "1:178081719111:web:44e95480cff6df2a5a2262", // Web App ID തന്നെ ഉപയോഗിക്കുന്നു
+    appId: "1:178081719111:web:44e95480cff6df2a5a2262",
     messagingSenderId: "178081719111",
     projectId: "fee-apk-1",
     storageBucket: "fee-apk-1.firebasestorage.app",
   );
 
-  // iOS CONFIGURATION
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: "AIzaSyDcxrvgGTcc-w2LgY1Hc1Jy6EPs7fJGFJs",
     appId: "1:178081719111:web:44e95480cff6df2a5a2262",
