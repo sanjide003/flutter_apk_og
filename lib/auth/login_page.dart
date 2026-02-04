@@ -11,38 +11,24 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final AuthService _authService = AuthService();
 
-  int _viewState = 0; 
+  int _viewState = 0; // 0: Select, 1: Student, 2: Staff
   bool _isLoading = false;
+  bool _isPasswordVisible = false; // പാസ്‌വേഡ് കാണാൻ
 
-  // Staff Login Variables
-  String? _selectedStaff;
+  // Inputs
+  String? _selectedStaffName; // To store selected name
   final TextEditingController _staffPassController = TextEditingController();
   List<String> _availableStaff = [];
-
-  // Student Login Variables
-  String? _selectedClass;
-  // (Student ഭാഗം ഇപ്പോൾ ശൂന്യമാണ് കാരണം ഡാറ്റ ഇല്ല)
 
   @override
   void initState() {
     super.initState();
-    _loadRealData();
+    _loadData();
   }
 
-  // ഫയർബേസിൽ നിന്ന് ലിസ്റ്റ് എടുക്കുന്നു
-  void _loadRealData() async {
-    setState(() => _isLoading = true);
-    try {
-      final staff = await _authService.getStaffList();
-      if (mounted) {
-        setState(() {
-          _availableStaff = staff;
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) setState(() => _isLoading = false);
-    }
+  void _loadData() async {
+    final staff = await _authService.getStaffNames();
+    if (mounted) setState(() => _availableStaff = staff);
   }
 
   @override
@@ -58,8 +44,8 @@ class _LoginPageState extends State<LoginPage> {
               Navigator.pop(context);
             } else {
               setState(() {
-                _viewState = 0;
-                _selectedStaff = null;
+                _viewState = 0; // Back to selection
+                _selectedStaffName = null;
                 _staffPassController.clear();
               });
             }
@@ -81,24 +67,16 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Widget _buildBody() {
-    if (_isLoading) {
-      return const Column(
-        children: [
-          CircularProgressIndicator(),
-          SizedBox(height: 20),
-          Text("Loading Data..."),
-        ],
-      );
-    }
+    if (_isLoading) return const Center(child: CircularProgressIndicator());
     if (_viewState == 2) return _staffForm();
-    if (_viewState == 1) return const Center(child: Text("No Students Added Yet"));
+    if (_viewState == 1) return const Center(child: Text("Student Portal - Under Maintenance"));
     return _selectionScreen();
   }
 
   Widget _selectionScreen() {
     return Column(
       children: [
-        const Text("Fee edusy Login", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+        const Text("Who are you?", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
         const SizedBox(height: 40),
         _roleCard("Management / Staff", Icons.badge, Colors.orange, () => setState(() => _viewState = 2)),
         const SizedBox(height: 20),
@@ -111,58 +89,90 @@ class _LoginPageState extends State<LoginPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Text("Staff Login", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 20),
-        
-        // Staff Name Dropdown (Real Data)
-        DropdownButtonFormField<String>(
-          decoration: const InputDecoration(labelText: "Select Name"),
-          value: _selectedStaff,
-          items: _availableStaff.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
-          onChanged: (val) => setState(() => _selectedStaff = val),
-          hint: const Text("Select Name"),
+        const Text("Staff Login", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 30),
+
+        // 1. NAME SEARCH INPUT (AUTOCOMPLETE)
+        Autocomplete<String>(
+          optionsBuilder: (TextEditingValue textEditingValue) {
+            if (textEditingValue.text.isEmpty) {
+              return const Iterable<String>.empty();
+            }
+            return _availableStaff.where((String option) {
+              return option.toLowerCase().contains(textEditingValue.text.toLowerCase());
+            });
+          },
+          onSelected: (String selection) {
+            _selectedStaffName = selection;
+          },
+          fieldViewBuilder: (context, controller, focusNode, onEditingComplete) {
+            return TextField(
+              controller: controller,
+              focusNode: focusNode,
+              onEditingComplete: onEditingComplete,
+              decoration: const InputDecoration(
+                labelText: "Type your Name",
+                prefixIcon: Icon(Icons.person_search),
+                hintText: "Search name...",
+                border: OutlineInputBorder(),
+              ),
+            );
+          },
         ),
         
-        const SizedBox(height: 15),
+        const SizedBox(height: 20),
+
+        // 2. PASSWORD INPUT (WITH EYE ICON)
         TextField(
           controller: _staffPassController,
-          obscureText: true,
-          decoration: const InputDecoration(labelText: "Password"),
+          obscureText: !_isPasswordVisible,
+          decoration: InputDecoration(
+            labelText: "Password",
+            prefixIcon: const Icon(Icons.lock),
+            border: const OutlineInputBorder(),
+            suffixIcon: IconButton(
+              icon: Icon(_isPasswordVisible ? Icons.visibility : Icons.visibility_off),
+              onPressed: () {
+                setState(() {
+                  _isPasswordVisible = !_isPasswordVisible;
+                });
+              },
+            ),
+          ),
         ),
         
-        const SizedBox(height: 20),
+        const SizedBox(height: 30),
         ElevatedButton(
           onPressed: _attemptLogin,
-          child: const Text("Login"),
+          style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 15)),
+          child: const Text("LOGIN", style: TextStyle(fontSize: 16)),
         ),
       ],
     );
   }
 
   void _attemptLogin() async {
-    if (_selectedStaff == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Select a Name")));
+    if (_selectedStaffName == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please search and select a valid Name")));
       return;
     }
     
     setState(() => _isLoading = true);
     
     try {
-      // Real Login Call
-      String role = await _authService.loginStaff(_selectedStaff!, _staffPassController.text);
-      
+      String role = await _authService.loginStaff(_selectedStaffName!, _staffPassController.text);
       if (!mounted) return;
       setState(() => _isLoading = false);
 
       if (role == "admin") {
-        Navigator.pushNamedAndRemoveUntil(context, '/admin', (route) => false);
+        Navigator.pushNamedAndRemoveUntil(context, '/admin', (r) => false);
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Staff Page Not Ready")));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Staff Page - Coming Soon")));
       }
     } catch (e) {
       if (!mounted) return;
       setState(() => _isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Login Failed: ${e.toString()}"), backgroundColor: Colors.red));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: Colors.red));
     }
   }
 
@@ -171,11 +181,7 @@ class _LoginPageState extends State<LoginPage> {
       onTap: tap,
       child: Container(
         padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.1), 
-          borderRadius: BorderRadius.circular(10), 
-          border: Border.all(color: color)
-        ),
+        decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(10), border: Border.all(color: color)),
         child: Row(children: [Icon(icon, size: 30, color: color), const SizedBox(width: 20), Text(title, style: TextStyle(fontSize: 18, color: color))]),
       ),
     );
