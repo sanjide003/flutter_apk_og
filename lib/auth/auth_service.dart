@@ -5,88 +5,58 @@ class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
-  // 1. ലോഗിൻ പേജിലെ ലിസ്റ്റിലേക്ക് സ്റ്റാഫുകളെ വിളിക്കുന്നു
-  Future<List<String>> getStaffList() async {
+  // സ്റ്റാഫിന്റെ പേരുകൾ മാത്രം എടുക്കുന്ന ഫംഗ്‌ഷൻ (Search ചെയ്യാൻ)
+  Future<List<String>> getStaffNames() async {
     try {
-      // 'users' കളക്ഷനിൽ നിന്നും സ്റ്റാഫിനെ എടുക്കുന്നു
-      // (role: admin or staff)
-      final snapshot = await _db.collection('users')
-          .where('role', whereIn: ['admin', 'staff'])
-          .get();
-
-      List<String> staffNames = snapshot.docs.map((doc) => doc['name'] as String).toList();
+      final snapshot = await _db.collection('users').get();
+      List<String> names = snapshot.docs.map((doc) => doc['name'] as String).toList();
       
-      // ഡാറ്റാബേസ് ശൂന്യമാണെങ്കിൽ (ആദ്യത്തെ തവണ) അഡ്മിനെ കാണിക്കാൻ
-      if (staffNames.isEmpty) {
-        return ["Principal User"]; 
-      }
-      
-      // അല്ലെങ്കിൽ ലിസ്റ്റിലേക്ക് "Principal User" കൂടി ചേർക്കുക (എപ്പോഴും ലോഗിൻ ചെയ്യാൻ)
-      if (!staffNames.contains("Principal User")) {
-        staffNames.insert(0, "Principal User");
-      }
-      
-      return staffNames;
+      if (!names.contains("Principal User")) names.insert(0, "Principal User");
+      return names;
     } catch (e) {
-      print("Error fetching staff: $e");
-      // എറർ വന്നാൽ അഡ്മിൻ പേര് മാത്രം കാണിക്കും
       return ["Principal User"];
     }
   }
 
-  // 2. ക്ലാസ്സുകൾ എടുക്കുന്നു (ഇപ്പോൾ ശൂന്യമായിരിക്കും)
-  Future<List<String>> getClasses() async {
-    try {
-      final snapshot = await _db.collection('academic_years')
-          .where('isActive', isEqualTo: true)
-          .get();
-      
-      // ഇവിടെ ലോജിക് പിന്നീട് എഴുതാം, ഇപ്പോൾ Empty List
-      return []; 
-    } catch (e) {
-      return [];
-    }
-  }
-
-  // 3. സ്റ്റാഫ് ലോഗിൻ (Real Auth)
+  // LOGIN FUNCTION WITH PASSWORD CHECK
   Future<String> loginStaff(String name, String password) async {
     try {
-      String email = "";
-
-      // കേസ് 1: അഡ്മിൻ (Principal User)
-      if (name == "Principal User") {
-        email = "dsd003@gmail.com";
-      } 
-      // കേസ് 2: മറ്റ് സ്റ്റാഫുകൾ (Database-ൽ നിന്ന് ഇമെയിൽ കണ്ടുപിടിക്കുന്നു)
-      else {
-        final snapshot = await _db.collection('users')
-            .where('name', isEqualTo: name)
-            .limit(1)
-            .get();
-            
-        if (snapshot.docs.isEmpty) {
-          throw Exception("User not found in database");
-        }
-        email = snapshot.docs.first['email'];
+      // 1. ADMIN CHECK (HARDCODED FOR SAFETY)
+      if (name == "Principal User" && password == "dsd003") {
+        await _auth.signInWithEmailAndPassword(email: "dsd003@gmail.com", password: password);
+        return "admin";
       }
 
-      // ഫയർബേസ് ഓതന്റിക്കേഷൻ
-      await _auth.signInWithEmailAndPassword(email: email, password: password);
-      
-      // വിജയിച്ചാൽ റോൾ തിരിച്ചയക്കുന്നു
-      if (name == "Principal User") return "admin";
-      
-      // മറ്റുള്ളവരുടെ റോൾ ചെക്ക് ചെയ്യുന്നു (ബാക്കി കോഡ് പിന്നീട്)
-      return "staff";
+      // 2. FETCH USER FROM DB BY NAME
+      final snapshot = await _db.collection('users')
+          .where('name', isEqualTo: name)
+          .limit(1)
+          .get();
 
-    } on FirebaseAuthException catch (e) {
-      throw Exception(e.message);
+      if (snapshot.docs.isEmpty) {
+        throw Exception("User name not found. Please contact Admin.");
+      }
+
+      var userData = snapshot.docs.first.data();
+      String storedPassword = userData['password'] ?? ""; // Fetching stored password
+
+      // 3. VERIFY PASSWORD
+      if (password != storedPassword) {
+        throw Exception("Incorrect Password.");
+      }
+
+      // 4. IF PASSWORD CORRECT, LOGIN VIA FIREBASE (Using Dummy Email Logic or Real Email if available)
+      // Since we are using Name/Pass login, we simulate Auth state.
+      // In a real app, you should Map names to Emails.
+      // For now, we return the role directly.
+      
+      return userData['role'] ?? "staff";
+
     } catch (e) {
-      throw Exception(e.toString());
+      throw Exception(e.toString().replaceAll("Exception:", "").trim());
     }
   }
 
-  // 4. ലോഗൗട്ട്
   Future<void> logout() async {
     await _auth.signOut();
   }
