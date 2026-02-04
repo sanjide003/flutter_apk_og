@@ -4,7 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 class AuthService {
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
 
-  // --- MOCK DATA (ഡാറ്റാബേസ് റെഡിയാകുന്നത് വരെ ക്ലാസ്സുകൾ കാണിക്കാൻ) ---
+  // --- MOCK DATA ---
   final List<String> _dummyClasses = [
     "Class 8 A", "Class 8 B", 
     "Class 9 A", "Class 9 B", 
@@ -19,10 +19,9 @@ class AuthService {
     "+2 Science": ["Fathima", "Gokul", "Harikrishnan", "Ishaan"],
   };
 
-  // സ്റ്റാഫ് ലിസ്റ്റ് (ഇതിൽ Principal User എന്നത് അഡ്മിൻ ആണ്)
   final List<String> _dummyStaff = [
-    "Principal User", // Admin
-    "Manager User",   // Admin (Optional)
+    "Principal User",
+    "Manager User",
     "Rahul Teacher",
     "Sruthi Teacher",
     "Accountant",
@@ -49,49 +48,37 @@ class AuthService {
   // --- REAL FIREBASE LOGIN IMPLEMENTATION ---
 
   // 1. Staff / Admin Login
-  Future<String?> loginStaff(String name, String password) async {
-    try {
-      // അഡ്മിൻ ലോഗിൻ പരിശോധന
-      // പേര് "Principal User" അല്ലെങ്കിൽ "Manager User" ആണെങ്കിൽ അഡ്മിൻ ഇമെയിൽ ഉപയോഗിക്കുന്നു
-      if (name == "Principal User" || name == "Manager User") {
-        
-        // ഫയർബേസ് ലോഗിൻ (Email & Password)
-        await _firebaseAuth.signInWithEmailAndPassword(
-          email: "dsd003@gmail.com", 
-          password: password
-        );
-        
-        return "admin"; // വിജയിച്ചാൽ 'admin' റോൾ നൽകുന്നു
-      } 
-      
-      // സാധാരണ സ്റ്റാഫ് ലോഗിൻ (ഇപ്പോൾ ഡമ്മി ആയി വെക്കുന്നു)
-      else if (password == "password") {
-        return "staff";
-      }
-      
-      return null; // ലോഗിൻ പരാജയപ്പെട്ടു
-
-    } on FirebaseAuthException catch (e) {
-      print("Firebase Login Error: ${e.message}");
-      return null;
-    } catch (e) {
-      print("General Login Error: $e");
-      return null;
+  Future<String> loginStaff(String name, String password) async {
+    // അഡ്മിൻ ലോഗിൻ പരിശോധന
+    if (name == "Principal User" || name == "Manager User") {
+      // ഇവിടെ try-catch ഒഴിവാക്കി, എറർ വന്നാൽ അത് നേരിട്ട് UI-ലേക്ക് പോകും
+      await _firebaseAuth.signInWithEmailAndPassword(
+        email: "dsd003@gmail.com", 
+        password: password
+      );
+      return "admin"; 
+    } 
+    
+    // സാധാരണ സ്റ്റാഫ് ലോഗിൻ
+    else if (password == "password") {
+      return "staff";
     }
+    
+    // പാസ്‌വേഡ് തെറ്റാണെങ്കിൽ എറർ ത്രോ ചെയ്യുന്നു
+    throw Exception("Invalid Username or Password");
   }
 
-  // 2. Student Login (താൽക്കാലികമായി പഴയതുപോലെ തന്നെ)
+  // 2. Student Login
   Future<bool> loginStudent(String className, String name, String phone) async {
     await Future.delayed(const Duration(seconds: 2));
     if (phone == "123456") return true;
     return false;
   }
 
-  // 3. Logout Function
+  // 3. Logout
   Future<void> logout() async {
     await _firebaseAuth.signOut();
   }
   
-  // 4. Check Current User
   User? get currentUser => _firebaseAuth.currentUser;
 }
