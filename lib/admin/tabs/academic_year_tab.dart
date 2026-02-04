@@ -16,85 +16,68 @@ class _AcademicYearTabState extends State<AcademicYearTab> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[100],
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            // Info Card
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.blue.shade50,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Colors.blue.shade200),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.info_outline, color: Colors.blue),
-                  const SizedBox(width: 10),
-                  const Expanded(
-                    child: Text(
-                      "The 'Active' year controls all fees and student promotions. Creating a new year automatically sets it as active.",
-                      style: TextStyle(color: Colors.blue),
+      body: StreamBuilder<QuerySnapshot>(
+        stream: _adminService.getAcademicYears(),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+          var years = snapshot.data!.docs;
+          if (years.isEmpty) return const Center(child: Text("No Academic Years Found"));
+
+          return ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: years.length,
+            itemBuilder: (context, index) {
+              var doc = years[index];
+              var data = doc.data() as Map<String, dynamic>;
+              bool isActive = data['isActive'] ?? false;
+
+              return Card(
+                elevation: isActive ? 4 : 1,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: isActive ? const BorderSide(color: Colors.green, width: 2) : BorderSide.none,
+                ),
+                child: ListTile(
+                  contentPadding: const EdgeInsets.all(16),
+                  onTap: () => _confirmToggleActive(doc.id, data['name'], isActive),
+                  
+                  // Status Icon
+                  leading: CircleAvatar(
+                    backgroundColor: isActive ? Colors.green.shade100 : Colors.grey.shade200,
+                    child: Icon(
+                      isActive ? Icons.check_circle : Icons.history,
+                      color: isActive ? Colors.green : Colors.grey,
                     ),
                   ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            // List of Years
-            Expanded(
-              child: StreamBuilder<QuerySnapshot>(
-                stream: _adminService.getAcademicYears(),
-                builder: (context, snapshot) {
-                  if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
                   
-                  var years = snapshot.data!.docs;
-
-                  if (years.isEmpty) {
-                    return const Center(child: Text("No Academic Years Found.\nCreate one to start.", textAlign: TextAlign.center));
-                  }
-
-                  return ListView.builder(
-                    itemCount: years.length,
-                    itemBuilder: (context, index) {
-                      var data = years[index].data() as Map<String, dynamic>;
-                      bool isActive = data['isActive'] ?? false;
-
-                      return Card(
-                        elevation: isActive ? 4 : 1,
-                        margin: const EdgeInsets.only(bottom: 10),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          side: isActive ? const BorderSide(color: Colors.green, width: 2) : BorderSide.none,
-                        ),
-                        child: ListTile(
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                          leading: CircleAvatar(
-                            backgroundColor: isActive ? Colors.green : Colors.grey,
-                            child: const Icon(Icons.calendar_today, color: Colors.white),
-                          ),
-                          title: Text(
-                            data['name'],
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                          ),
-                          subtitle: Text("Start: ${_formatDate(data['startDate'])}  •  End: ${_formatDate(data['endDate'])}"),
-                          trailing: isActive 
-                              ? Chip(label: const Text("ACTIVE", style: TextStyle(color: Colors.white)), backgroundColor: Colors.green)
-                              : null,
-                        ),
-                      );
+                  title: Text(
+                    data['name'],
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                  ),
+                  subtitle: Text(
+                    isActive ? "Currently Active Year" : "Tap to Activate",
+                    style: TextStyle(color: isActive ? Colors.green : Colors.grey),
+                  ),
+                  
+                  // 3-DOT MENU (Edit / Delete)
+                  trailing: PopupMenuButton<String>(
+                    onSelected: (value) {
+                      if (value == 'edit') _showYearDialog(docId: doc.id, existingData: data);
+                      if (value == 'delete') _confirmDelete(doc.id);
                     },
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
+                    itemBuilder: (context) => [
+                      const PopupMenuItem(value: 'edit', child: Row(children: [Icon(Icons.edit, size: 20), SizedBox(width: 10), Text("Edit")])),
+                      const PopupMenuItem(value: 'delete', child: Row(children: [Icon(Icons.delete, size: 20, color: Colors.red), SizedBox(width: 10), Text("Delete", style: TextStyle(color: Colors.red))])),
+                    ],
+                  ),
+                ),
+              );
+            },
+          );
+        },
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: _showAddYearDialog,
+        onPressed: () => _showYearDialog(),
         label: const Text("New Academic Year"),
         icon: const Icon(Icons.add),
         backgroundColor: Theme.of(context).primaryColor,
@@ -102,45 +85,76 @@ class _AcademicYearTabState extends State<AcademicYearTab> {
     );
   }
 
-  // തീയതി കാണിക്കാൻ (Simple Formatter)
-  String _formatDate(Timestamp? timestamp) {
-    if (timestamp == null) return "-";
-    DateTime date = timestamp.toDate();
-    return "${date.day}/${date.month}/${date.year}";
+  // --- ACTIONS ---
+
+  void _confirmToggleActive(String docId, String name, bool currentlyActive) {
+    if (currentlyActive) return; // Already active
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Activate Year?"),
+        content: Text("Do you want to set '$name' as the active academic year? Other years will be deactivated."),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("No")),
+          ElevatedButton(
+            onPressed: () {
+              _adminService.setAcademicYearActive(docId);
+              Navigator.pop(ctx);
+            },
+            child: const Text("Yes, Activate"),
+          ),
+        ],
+      ),
+    );
   }
 
-  // പുതിയ വർഷം ചേർക്കാനുള്ള ഡയലോഗ്
-  void _showAddYearDialog() {
-    final nameController = TextEditingController();
-    DateTime startDate = DateTime.now();
-    DateTime endDate = DateTime.now().add(const Duration(days: 365));
+  void _confirmDelete(String docId) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Delete Year?"),
+        content: const Text("Are you sure? This action cannot be undone."),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("No")),
+          TextButton(
+            onPressed: () {
+              _adminService.deleteAcademicYear(docId);
+              Navigator.pop(ctx);
+            },
+            child: const Text("Yes, Delete", style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Dialog for Create & Edit
+  void _showYearDialog({String? docId, Map<String, dynamic>? existingData}) {
+    final nameController = TextEditingController(text: existingData?['name'] ?? "");
+    // Dates can be added if needed, kept simple for now
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text("Create Academic Year"),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: nameController,
-              decoration: const InputDecoration(labelText: "Year Name (Ex: 2025-2026)", border: OutlineInputBorder()),
-            ),
-            const SizedBox(height: 20),
-            const Text("This year will be set as ACTIVE automatically.", style: TextStyle(fontSize: 12, color: Colors.grey)),
-          ],
+        title: Text(docId == null ? "Create Year" : "Edit Year"),
+        content: TextField(
+          controller: nameController,
+          decoration: const InputDecoration(labelText: "Year Name (Ex: 2025-2026)", border: OutlineInputBorder()),
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
           ElevatedButton(
             onPressed: () {
               if (nameController.text.isNotEmpty) {
-                _adminService.addAcademicYear(nameController.text, startDate, endDate);
+                if (docId == null) {
+                  _adminService.addAcademicYear(nameController.text, DateTime.now(), DateTime.now().add(const Duration(days: 365)));
+                } else {
+                  _adminService.updateAcademicYear(docId, nameController.text, DateTime.now(), DateTime.now());
+                }
                 Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Academic Year Created!")));
               }
             },
-            child: const Text("Create"),
+            child: Text(docId == null ? "Create" : "Update"),
           ),
         ],
       ),
