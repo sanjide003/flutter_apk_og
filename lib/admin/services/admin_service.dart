@@ -3,7 +3,21 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class AdminService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
-  // --- 1. ACADEMIC YEAR ---
+  // --- CLASS MANAGEMENT (NEW - NO MORE MOCK DATA) ---
+  // ക്ലാസ്സുകൾ ഡാറ്റാബേസിൽ നിന്ന് വിളിക്കുന്നു
+  Stream<QuerySnapshot> getClasses() {
+    return _db.collection('classes').orderBy('name').snapshots();
+  }
+
+  // പുതിയ ക്ലാസ്സ് ചേർക്കാൻ
+  Future<void> addClass(String className) async {
+    await _db.collection('classes').add({
+      'name': className,
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  // --- 1. ACADEMACADEMICIC YEAR ---
   Future<void> addAcademicYear(String name, DateTime start, DateTime end) async {
     await _deactivateAllYears();
     await _db.collection('academic_years').add({
@@ -42,8 +56,7 @@ class AdminService {
   Future<void> deleteStaff(String docId) async => await _db.collection('users').doc(docId).delete();
   Stream<QuerySnapshot> getStaffList() => _db.collection('users').orderBy('createdAt', descending: true).snapshots();
 
-  // --- 3. STUDENT MANAGMANAGEMENTEMENT (IMPROVED) ---
-
+  // --- 3. STUDENT MANAGEMENT ---
   Future<int> _generateNextSerialNo(String className, String gender) async {
     final snapshot = await _db.collection('students')
         .where('className', isEqualTo: className)
@@ -52,88 +65,46 @@ class AdminService {
     return snapshot.docs.length + 1;
   }
 
-  // Add Single Student
   Future<void> addStudent({
-    required String name,
-    required String gender,
-    required String className,
-    String? parentName,
-    String? uidNumber,
-    String? phone,
-    String? address,
+    required String name, required String gender, required String className,
+    String? parentName, String? uidNumber, String? phone, String? address,
   }) async {
     int serialNo = await _generateNextSerialNo(className, gender);
-
     await _db.collection('students').add({
-      'serialNo': serialNo,
-      'name': name,
-      'gender': gender,
-      'className': className,
-      'parentName': parentName ?? "",
-      'uidNumber': uidNumber ?? "",
-      'phone': phone ?? "",
-      'address': address ?? "",
-      'isActive': true,
-      'createdAt': FieldValue.serverTimestamp(),
+      'serialNo': serialNo, 'name': name, 'gender': gender, 'className': className,
+      'parentName': parentName ?? "", 'uidNumber': uidNumber ?? "", 'phone': phone ?? "", 'address': address ?? "",
+      'isActive': true, 'createdAt': FieldValue.serverTimestamp(),
     });
   }
 
-  Future<void> updateStudent(String docId, Map<String, dynamic> data) async {
-    await _db.collection('students').doc(docId).update(data);
-  }
+  Future<void> updateStudent(String docId, Map<String, dynamic> data) async => await _db.collection('students').doc(docId).update(data);
+  Future<void> deleteStudent(String docId) async => await _db.collection('students').doc(docId).delete();
 
-  Future<void> deleteStudent(String docId) async {
-    await _db.collection('students').doc(docId).delete();
-  }
-
-  // Updated Bulk Add Logic (Receives List of Maps)
   Future<void> addBulkStudents(String className, String gender, List<Map<String, String>> studentsData) async {
     final batch = _db.batch();
     int currentSerial = await _generateNextSerialNo(className, gender);
-
     for (var student in studentsData) {
       var docRef = _db.collection('students').doc();
       batch.set(docRef, {
-        'serialNo': currentSerial,
-        'className': className,
-        'gender': gender,
-        'name': student['name'] ?? "",
-        'parentName': student['parent'] ?? "",
-        'phone': student['phone'] ?? "",
-        'uidNumber': student['uid'] ?? "",
+        'serialNo': currentSerial, 'className': className, 'gender': gender,
+        'name': student['name'] ?? "", 'parentName': student['parent'] ?? "",
+        'phone': student['phone'] ?? "", 'uidNumber': student['uid'] ?? "",
         'address': student['address'] ?? "",
-        'isActive': true,
-        'createdAt': FieldValue.serverTimestamp(),
+        'isActive': true, 'createdAt': FieldValue.serverTimestamp(),
       });
       currentSerial++;
     }
     await batch.commit();
   }
   
-  Stream<QuerySnapshot> getStudents() {
-    return _db.collection('students')
-        .orderBy('className')
-        .orderBy('gender')
-        .orderBy('serialNo')
-        .snapshots();
-  }
+  Stream<QuerySnapshot> getStudents() => _db.collection('students').orderBy('className').orderBy('gender').orderBy('serialNo').snapshots();
 
-  // --- 4. FEE STRUCTURE ---
-  Future<void> addFeeStructure(String name, double amount, String type) async {
-    await _db.collection('fee_structures').add({'name': name, 'amount': amount, 'type': type, 'createdAt': FieldValue.serverTimestamp()});
-  }
+  // --- OTHER TABS ---
+  Future<void> addFeeStructure(String name, double amount, String type) async => await _db.collection('fee_structures').add({'name': name, 'amount': amount, 'type': type, 'createdAt': FieldValue.serverTimestamp()});
   Future<void> deleteFeeStructure(String docId) async => await _db.collection('fee_structures').doc(docId).delete();
   Stream<QuerySnapshot> getFeeStructures() => _db.collection('fee_structures').snapshots();
-
-  // --- 5. NOTICES ---
-  Future<void> addNotice(String title, String description, String target) async {
-    await _db.collection('notices').add({'title': title, 'description': description, 'target': target, 'date': FieldValue.serverTimestamp()});
-  }
+  Future<void> addNotice(String title, String description, String target) async => await _db.collection('notices').add({'title': title, 'description': description, 'target': target, 'date': FieldValue.serverTimestamp()});
   Stream<QuerySnapshot> getNotices() => _db.collection('notices').orderBy('date', descending: true).snapshots();
-
-  // --- 6. PUBLIC CONTENT ---
-  Future<void> addGalleryImage(String url, String caption) async {
-    await _db.collection('gallery').add({'imageUrl': url, 'caption': caption, 'createdAt': FieldValue.serverTimestamp()});
-  }
+  Future<void> addGalleryImage(String url, String caption) async => await _db.collection('gallery').add({'imageUrl': url, 'caption': caption, 'createdAt': FieldValue.serverTimestamp()});
   Stream<QuerySnapshot> getGallery() => _db.collection('gallery').orderBy('createdAt', descending: true).snapshots();
 }
