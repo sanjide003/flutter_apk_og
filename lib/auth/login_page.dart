@@ -11,7 +11,7 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final AuthService _authService = AuthService();
 
-  // State Management
+  // State
   int _viewState = 0; // 0: Select, 1: Student, 2: Staff
   bool _isLoading = false;
 
@@ -55,9 +55,7 @@ class _LoginPageState extends State<LoginPage> {
                 icon: const Icon(Icons.arrow_back),
                 onPressed: () => setState(() {
                   _viewState = 0;
-                  _selectedClass = null;
-                  _selectedStudent = null;
-                  _selectedStaff = null;
+                  _isLoading = false;
                 }),
               )
             : IconButton(
@@ -83,7 +81,16 @@ class _LoginPageState extends State<LoginPage> {
 
   Widget _buildCurrentView() {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 16),
+            Text("Authenticating..."),
+          ],
+        ),
+      );
     }
     switch (_viewState) {
       case 1:
@@ -96,7 +103,6 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
-  // VIEW 0: SELECTION
   Widget _buildSelectionScreen() {
     return Column(
       children: [
@@ -111,7 +117,6 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  // VIEW 1: STUDENT
   Widget _buildStudentLoginForm() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -153,7 +158,6 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  // VIEW 2: STAFF
   Widget _buildStaffLoginForm() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -189,7 +193,6 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   void _handleStudentLogin() {
-    // Student Logic (Placeholder)
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Student Dashboard Coming Soon!")));
   }
 
@@ -198,21 +201,34 @@ class _LoginPageState extends State<LoginPage> {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please select your Name")));
       return;
     }
+    
+    // കീബോർഡ് താഴേക്ക് ഇറക്കുന്നു
+    FocusScope.of(context).unfocus();
+
     setState(() => _isLoading = true);
     
-    // Login Call
-    String? role = await _authService.loginStaff(_selectedStaff!, _staffPassController.text);
-    
-    setState(() => _isLoading = false);
+    try {
+      // Login Call
+      String role = await _authService.loginStaff(_selectedStaff!, _staffPassController.text);
+      
+      if (!mounted) return;
+      setState(() => _isLoading = false);
 
-    if (role == "admin") {
-      // Navigate to Admin Dashboard
-      Navigator.pushNamedAndRemoveUntil(context, '/admin', (route) => false);
-    } else if (role == "staff") {
-      // Navigate to Staff Dashboard (Not created yet)
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Staff Dashboard Coming Soon!")));
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Invalid Password (Try 'password')")));
+      if (role == "admin") {
+        Navigator.pushNamedAndRemoveUntil(context, '/admin', (route) => false);
+      } else if (role == "staff") {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Staff Dashboard Coming Soon!")));
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      // എറർ മെസ്സേജ് കൃത്യമായി കാണിക്കുന്നു
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Login Failed: ${e.toString().replaceAll('Exception:', '')}"),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 }
