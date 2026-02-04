@@ -2,6 +2,7 @@
 <html>
 <head>
   <base href="/sanjid-app-flutter-model-/">
+
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
   <meta name="description" content="Institution Operating System">
@@ -9,12 +10,29 @@
   <!-- iOS meta tags & icons -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="Institution App">
-  
-  <title>Institution OS</title>
+  <meta name="apple-mobile-web-app-title" content="Institution OS">
   <link rel="manifest" href="manifest.json">
+
+  <title>Institution OS</title>
+  
+  <!-- ഈ സ്ക്രിപ്റ്റ് ആണ് പ്രധാനം -->
+  <script src="flutter.js" defer></script>
 </head>
 <body>
-  <script src="flutter_bootstrap.js" async></script>
+  <script>
+    window.addEventListener('load', function(ev) {
+      // Download main.dart.js
+      _flutter.loader.loadEntrypoint({
+        serviceWorker: {
+          serviceWorkerVersion: serviceWorkerVersion,
+        },
+        onEntrypointLoaded: function(engineInitializer) {
+          engineInitializer.initializeEngine().then(function(appRunner) {
+            appRunner.runApp();
+          });
+        }
+      });
+    });
+  </script>
 </body>
 </html>
