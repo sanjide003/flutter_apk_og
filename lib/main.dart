@@ -1,35 +1,75 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'config/theme.dart';
-import 'config/firebase_options.dart'; // പുതിയ ഫയൽ ഇമ്പോർട്ട് ചെയ്യുന്നു
+import 'config/firebase_options.dart';
 import 'public/public_page.dart';
 
-void main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  
-  // ഫയർബേസ് ഇനിഷ്യലൈസ് ചെയ്യുന്നു (നമ്മുടെ പുതിയ ഫയലിൽ നിന്ന് ഓപ്ഷൻസ് എടുക്കും)
-  try {
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
-    print("Firebase Initialized Successfully using Custom Config");
-  } catch (e) {
-    print("Firebase Error: $e");
-  }
-
   runApp(const InstitutionApp());
 }
 
-class InstitutionApp extends StatelessWidget {
+class InstitutionApp extends StatefulWidget {
   const InstitutionApp({super.key});
+
+  @override
+  State<InstitutionApp> createState() => _InstitutionAppState();
+}
+
+class _InstitutionAppState extends State<InstitutionApp> {
+  // ഫയർബേസ് ഇനിഷ്യലൈസ് ചെയ്യുന്ന ഫ്യൂച്ചർ
+  final Future<FirebaseApp> _initialization = Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Institution OS',
-      theme: AppTheme.lightTheme,
-      home: const PublicPage(),
+      theme: AppTheme.lightTheme, // Theme എറർ പരിഹരിച്ച ഫയൽ ആണെന്ന് ഉറപ്പാക്കുക
+      
+      // FutureBuilder ഉപയോഗിക്കുന്നു
+      // ഫയർബേസ് റെഡി ആയോ എന്ന് നോക്കും
+      home: FutureBuilder(
+        future: _initialization,
+        builder: (context, snapshot) {
+          // 1. എറർ വന്നാൽ സ്ക്രീനിൽ കാണിക്കും
+          if (snapshot.hasError) {
+            return Scaffold(
+              body: Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: Text(
+                    "Something went wrong!\n\n${snapshot.error}",
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: Colors.red),
+                  ),
+                ),
+              ),
+            );
+          }
+
+          // 2. കണക്ട് ആയിക്കഴിഞ്ഞാൽ പബ്ലിക് പേജ് കാണിക്കും
+          if (snapshot.connectionState == ConnectionState.done) {
+            return const PublicPage();
+          }
+
+          // 3. കണക്ട് ആകുന്നത് വരെ ലോഡിംഗ് കാണിക്കും
+          return const Scaffold(
+            body: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 20),
+                  Text("Institution OS Loading..."),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
     );
   }
 }
