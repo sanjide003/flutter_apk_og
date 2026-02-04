@@ -3,7 +3,8 @@ import 'package:firebase_core/firebase_core.dart';
 import 'config/theme.dart';
 import 'config/firebase_options.dart';
 import 'public/public_page.dart';
-import 'auth/login_page.dart'; // പുതിയ ഫയൽ ഇമ്പോർട്ട് ചെയ്തു
+import 'auth/login_page.dart';
+import 'admin/admin_page.dart'; // പുതിയ ഫയൽ ഇമ്പോർട്ട് ചെയ്തു
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -29,10 +30,10 @@ class _InstitutionAppState extends State<InstitutionApp> {
       title: 'Fee edusy',
       theme: AppTheme.lightTheme,
       
-      // റൂട്ടുകൾ ഇവിടെ രജിസ്റ്റർ ചെയ്യുന്നു
+      // റൂട്ടുകൾ അപ്ഡേറ്റ് ചെയ്തു
       routes: {
         '/login': (context) => const LoginPage(),
-        // '/admin': (context) => const AdminDashboard(), // പിന്നീട് ചേർക്കാം
+        '/admin': (context) => const AdminPage(), // Admin Route
       },
 
       home: FutureBuilder(
