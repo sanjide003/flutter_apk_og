@@ -42,61 +42,105 @@ class AdminService {
   Future<void> deleteStaff(String docId) async => await _db.collection('users').doc(docId).delete();
   Stream<QuerySnapshot> getStaffList() => _db.collection('users').orderBy('createdAt', descending: true).snapshots();
 
-  // --- 3. STUDENT MANAGEMENT (AUTO SERIAL NO & BULK ADD) ---
-  
-  // Get Next Admission Number Logic
-  Future<int> _getNextAdmNo() async {
-    var doc = await _db.collection('counters').doc('students').get();
-    if (!doc.exists) {
-      await _db.collection('counters').doc('students').set({'count': 1000}); // Start from 1000
-      return 1001;
-    }
-    return (doc.data()!['count'] as int) + 1;
+  // --- 3. STUDENT MANAGEMENT (ADVANCED LOGIC) ---
+
+  // ലോജിക്: ഓരോ ക്ലാസ്സിലെയും ഓരോ ജെൻഡറിനും ക്രമനമ്പർ 1 ൽ തുടങ്ങണം.
+  // ഉദാഹരണത്തിന്: 10A - Male - 1, 10A - Male - 2, 10A - Female - 1...
+  Future<int> _generateNextSerialNo(String className, String gender) async {
+    final snapshot = await _db.collection('students')
+        .where('className', isEqualTo: className)
+        .where('gender', isEqualTo: gender)
+        .get();
+    
+    // നിലവിലുള്ള എണ്ണം എടുക്കുന്നു + 1
+    return snapshot.docs.length + 1;
   }
 
-  // Increment Counter
-  Future<void> _incrementAdmNo(int countToAdd) async {
-    await _db.collection('counters').doc('students').update({
-      'count': FieldValue.increment(countToAdd)
-    });
-  }
-
+  // Add Single Student
   Future<void> addStudent({
-    required String name, required String gender, required String className,
-    String? parentName, String? uidNumber, String? phone, String? address,
+    required String name,
+    required String gender,
+    required String className,
+    String? parentName,
+    String? uidNumber,
+    String? phone,
+    String? address,
   }) async {
-    int admNo = await _getNextAdmNo();
+    // 1. സീരിയൽ നമ്പർ കണ്ടുപിടിക്കുന്നു
+    int serialNo = await _generateNextSerialNo(className, gender);
+
     await _db.collection('students').add({
-      'admissionNumber': admNo.toString(),
-      'name': name, 'gender': gender, 'className': className,
-      'parentName': parentName ?? "", 'uidNumber': uidNumber ?? "",
-      'phone': phone ?? "", 'address': address ?? "",
-      'isActive': true, 'createdAt': FieldValue.serverTimestamp(),
+      'serialNo': serialNo, // ഓട്ടോമാറ്റിക് ക്രമനമ്പർ
+      'name': name,
+      'gender': gender,
+      'className': className,
+      'parentName': parentName ?? "",
+      'uidNumber': uidNumber ?? "",
+      'phone': phone ?? "",
+      'address': address ?? "",
+      'isActive': true,
+      'createdAt': FieldValue.serverTimestamp(),
     });
-    await _incrementAdmNo(1);
   }
 
-  Future<void> addBulkStudents(String className, String gender, List<String> names) async {
-    int startAdmNo = await _getNextAdmNo();
+  // Update Student
+  Future<void> updateStudent(String docId, Map<String, dynamic> data) async {
+    await _db.collection('students').doc(docId).update(data);
+  }
+
+  // Delete Student
+  Future<void> deleteStudent(String docId) async {
+    await _db.collection('students').doc(docId).delete();
+  }
+
+  // Bulk Add Students (Updated)
+  // Data format expected: Name, ParentName, Phone, UID, Address (Comma separated or just Name)
+  Future<void> addBulkStudents(String className, String gender, List<String> lines) async {
     final batch = _db.batch();
     
-    for (int i = 0; i < names.length; i++) {
+    // നിലവിലെ സീരിയൽ നമ്പർ എടുക്കുന്നു
+    int currentSerial = await _generateNextSerialNo(className, gender);
+
+    for (String line in lines) {
+      if (line.trim().isEmpty) continue;
+
+      // കോമ ഇട്ട് തിരിച്ചാണ് ഡാറ്റ എങ്കിൽ (CSV Style)
+      List<String> parts = line.split(',');
+      
+      String name = parts[0].trim();
+      String parent = parts.length > 1 ? parts[1].trim() : "";
+      String phone = parts.length > 2 ? parts[2].trim() : "";
+      String uid = parts.length > 3 ? parts[3].trim() : "";
+      String address = parts.length > 4 ? parts[4].trim() : "";
+
       var docRef = _db.collection('students').doc();
+      
       batch.set(docRef, {
-        'admissionNumber': (startAdmNo + i).toString(),
-        'name': names[i].trim(),
+        'serialNo': currentSerial,
+        'name': name,
         'className': className,
         'gender': gender,
-        'parentName': "", 'uidNumber': "", 'phone': "", 'address': "", // Empty optionals
+        'parentName': parent,
+        'phone': phone,
+        'uidNumber': uid,
+        'address': address,
         'isActive': true,
         'createdAt': FieldValue.serverTimestamp(),
       });
+
+      currentSerial++; // അടുത്ത കുട്ടിക്ക് നമ്പർ കൂട്ടുന്നു
     }
     await batch.commit();
-    await _incrementAdmNo(names.length);
   }
   
-  Stream<QuerySnapshot> getStudents() => _db.collection('students').orderBy('createdAt', descending: true).snapshots();
+  // ഓർഡർ ചെയ്യുന്നത്: ക്ലാസ്സ് -> ജെൻഡർ -> ക്രമനമ്പർ
+  Stream<QuerySnapshot> getStudents() {
+    return _db.collection('students')
+        .orderBy('className')
+        .orderBy('gender')
+        .orderBy('serialNo')
+        .snapshots();
+  }
 
   // --- 4. FEE STRUCTURE ---
   Future<void> addFeeStructure(String name, double amount, String type) async {
@@ -111,7 +155,7 @@ class AdminService {
   }
   Stream<QuerySnapshot> getNotices() => _db.collection('notices').orderBy('date', descending: true).snapshots();
 
-  // --- 6. PUBLIC CONTENT (GALLERY) ---
+  // --- 6. PUBLIC CONTENT ---
   Future<void> addGalleryImage(String url, String caption) async {
     await _db.collection('gallery').add({'imageUrl': url, 'caption': caption, 'createdAt': FieldValue.serverTimestamp()});
   }
