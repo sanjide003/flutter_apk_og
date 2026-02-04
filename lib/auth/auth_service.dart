@@ -1,9 +1,10 @@
 import 'dart:async';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class AuthService {
-  // --- MOCK DATA (ടെസ്റ്റിംഗിന് വേണ്ടി മാത്രം) ---
-  
-  // ക്ലാസ്സുകളുടെ ലിസ്റ്റ്
+  final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
+
+  // --- MOCK DATA (ഡാറ്റാബേസ് റെഡിയാകുന്നത് വരെ ക്ലാസ്സുകൾ കാണിക്കാൻ) ---
   final List<String> _dummyClasses = [
     "Class 8 A", "Class 8 B", 
     "Class 9 A", "Class 9 B", 
@@ -12,17 +13,16 @@ class AuthService {
     "+2 Science", "+2 Commerce", "+2 Humanities"
   ];
 
-  // കുട്ടികളുടെ ലിസ്റ്റ് (ക്ലാസ്സ് തിരിച്ച്)
   final Map<String, List<String>> _dummyStudents = {
     "Class 10 A": ["Arjun", "Anjali", "Adwaith", "Bimal", "Chandana"],
     "Class 10 B": ["Rahul", "Rohit", "Reshma", "Sruthi", "Varun"],
     "+2 Science": ["Fathima", "Gokul", "Harikrishnan", "Ishaan"],
   };
 
-  // സ്റ്റാഫ് ലിസ്റ്റ്
+  // സ്റ്റാഫ് ലിസ്റ്റ് (ഇതിൽ Principal User എന്നത് അഡ്മിൻ ആണ്)
   final List<String> _dummyStaff = [
-    "Principal User",
-    "Manager User",
+    "Principal User", // Admin
+    "Manager User",   // Admin (Optional)
     "Rahul Teacher",
     "Sruthi Teacher",
     "Accountant",
@@ -31,41 +31,67 @@ class AuthService {
 
   // --- FUNCTIONS ---
 
-  // 1. എല്ലാ ക്ലാസ്സുകളും ലഭിക്കാൻ
   Future<List<String>> getClasses() async {
-    await Future.delayed(const Duration(milliseconds: 500)); // Loading simulation
+    await Future.delayed(const Duration(milliseconds: 500));
     return _dummyClasses;
   }
 
-  // 2. ഒരു ക്ലാസ്സിലെ കുട്ടികളെ ലഭിക്കാൻ
   Future<List<String>> getStudentsByClass(String className) async {
     await Future.delayed(const Duration(milliseconds: 500));
-    return _dummyStudents[className] ?? []; // ആ ക്ലാസ്സ് ഇല്ലെങ്കിൽ വെറും ലിസ്റ്റ്
+    return _dummyStudents[className] ?? [];
   }
 
-  // 3. എല്ലാ സ്റ്റാഫിനെയും ലഭിക്കാൻ
   Future<List<String>> getStaffList() async {
     await Future.delayed(const Duration(milliseconds: 500));
     return _dummyStaff;
   }
 
-  // 4. Student Login Check (Temporary)
+  // --- REAL FIREBASE LOGIN IMPLEMENTATION ---
+
+  // 1. Staff / Admin Login
+  Future<String?> loginStaff(String name, String password) async {
+    try {
+      // അഡ്മിൻ ലോഗിൻ പരിശോധന
+      // പേര് "Principal User" അല്ലെങ്കിൽ "Manager User" ആണെങ്കിൽ അഡ്മിൻ ഇമെയിൽ ഉപയോഗിക്കുന്നു
+      if (name == "Principal User" || name == "Manager User") {
+        
+        // ഫയർബേസ് ലോഗിൻ (Email & Password)
+        await _firebaseAuth.signInWithEmailAndPassword(
+          email: "dsd003@gmail.com", 
+          password: password
+        );
+        
+        return "admin"; // വിജയിച്ചാൽ 'admin' റോൾ നൽകുന്നു
+      } 
+      
+      // സാധാരണ സ്റ്റാഫ് ലോഗിൻ (ഇപ്പോൾ ഡമ്മി ആയി വെക്കുന്നു)
+      else if (password == "password") {
+        return "staff";
+      }
+      
+      return null; // ലോഗിൻ പരാജയപ്പെട്ടു
+
+    } on FirebaseAuthException catch (e) {
+      print("Firebase Login Error: ${e.message}");
+      return null;
+    } catch (e) {
+      print("General Login Error: $e");
+      return null;
+    }
+  }
+
+  // 2. Student Login (താൽക്കാലികമായി പഴയതുപോലെ തന്നെ)
   Future<bool> loginStudent(String className, String name, String phone) async {
     await Future.delayed(const Duration(seconds: 2));
-    // ടെസ്റ്റിംഗ്: ഫോൺ നമ്പർ '123456' ആണെങ്കിൽ വിജയിക്കും
     if (phone == "123456") return true;
     return false;
   }
 
-  // 5. Staff Login Check (Temporary)
-  Future<String?> loginStaff(String name, String password) async {
-    await Future.delayed(const Duration(seconds: 2));
-    // ടെസ്റ്റിംഗ്: പാസ്‌വേഡ് 'password' ആണെങ്കിൽ വിജയിക്കും
-    if (password == "password") {
-      // പേര് നോക്കി റോൾ തീരുമാനിക്കുന്നു (Demo Logic)
-      if (name.contains("Principal") || name.contains("Manager")) return "admin";
-      return "staff";
-    }
-    return null; // Login Failed
+  // 3. Logout Function
+  Future<void> logout() async {
+    await _firebaseAuth.signOut();
   }
+  
+  // 4. Check Current User
+  User? get currentUser => _firebaseAuth.currentUser;
 }
