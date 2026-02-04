@@ -11,36 +11,37 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final AuthService _authService = AuthService();
 
-  // State
-  int _viewState = 0; // 0: Select, 1: Student, 2: Staff
+  int _viewState = 0; 
   bool _isLoading = false;
 
-  // Student Controllers
-  String? _selectedClass;
-  String? _selectedStudent;
-  final TextEditingController _studentPhoneController = TextEditingController();
-  List<String> _availableClasses = [];
-  List<String> _availableStudents = [];
-
-  // Staff Controllers
+  // Staff Login Variables
   String? _selectedStaff;
   final TextEditingController _staffPassController = TextEditingController();
   List<String> _availableStaff = [];
 
+  // Student Login Variables
+  String? _selectedClass;
+  // (Student ഭാഗം ഇപ്പോൾ ശൂന്യമാണ് കാരണം ഡാറ്റ ഇല്ല)
+
   @override
   void initState() {
     super.initState();
-    _loadInitialData();
+    _loadRealData();
   }
 
-  void _loadInitialData() async {
-    final classes = await _authService.getClasses();
-    final staff = await _authService.getStaffList();
-    if (mounted) {
-      setState(() {
-        _availableClasses = classes;
-        _availableStaff = staff;
-      });
+  // ഫയർബേസിൽ നിന്ന് ലിസ്റ്റ് എടുക്കുന്നു
+  void _loadRealData() async {
+    setState(() => _isLoading = true);
+    try {
+      final staff = await _authService.getStaffList();
+      if (mounted) {
+        setState(() {
+          _availableStaff = staff;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -50,28 +51,28 @@ class _LoginPageState extends State<LoginPage> {
       backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text("Login Portal"),
-        leading: _viewState != 0
-            ? IconButton(
-                icon: const Icon(Icons.arrow_back),
-                onPressed: () => setState(() {
-                  _viewState = 0;
-                  _isLoading = false;
-                }),
-              )
-            : IconButton(
-                icon: const Icon(Icons.close),
-                onPressed: () => Navigator.pop(context),
-              ),
+        leading: IconButton(
+          icon: Icon(_viewState == 0 ? Icons.close : Icons.arrow_back),
+          onPressed: () {
+            if (_viewState == 0) {
+              Navigator.pop(context);
+            } else {
+              setState(() {
+                _viewState = 0;
+                _selectedStaff = null;
+                _staffPassController.clear();
+              });
+            }
+          },
+        ),
       ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Center(
-            child: SingleChildScrollView(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 400),
-                child: _buildCurrentView(),
-              ),
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 400),
+              child: _buildBody(),
             ),
           ),
         ),
@@ -79,136 +80,75 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  Widget _buildCurrentView() {
+  Widget _buildBody() {
     if (_isLoading) {
-      return const Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 16),
-            Text("Authenticating..."),
-          ],
-        ),
+      return const Column(
+        children: [
+          CircularProgressIndicator(),
+          SizedBox(height: 20),
+          Text("Loading Data..."),
+        ],
       );
     }
-    switch (_viewState) {
-      case 1:
-        return _buildStudentLoginForm();
-      case 2:
-        return _buildStaffLoginForm();
-      case 0:
-      default:
-        return _buildSelectionScreen();
-    }
+    if (_viewState == 2) return _staffForm();
+    if (_viewState == 1) return const Center(child: Text("No Students Added Yet"));
+    return _selectionScreen();
   }
 
-  Widget _buildSelectionScreen() {
+  Widget _selectionScreen() {
     return Column(
       children: [
-        const Text("Who are you?", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 10),
-        const Text("Select your role to continue", style: TextStyle(color: Colors.grey)),
+        const Text("Fee edusy Login", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
         const SizedBox(height: 40),
-        _buildRoleCard("Student / Parent", Icons.school, Colors.blue.shade50, Colors.blue.shade900, () => setState(() => _viewState = 1)),
+        _roleCard("Management / Staff", Icons.badge, Colors.orange, () => setState(() => _viewState = 2)),
         const SizedBox(height: 20),
-        _buildRoleCard("Management / Staff", Icons.badge, Colors.orange.shade50, Colors.orange.shade900, () => setState(() => _viewState = 2)),
+        _roleCard("Student / Parent", Icons.school, Colors.blue, () => setState(() => _viewState = 1)),
       ],
     );
   }
 
-  Widget _buildStudentLoginForm() {
+  Widget _staffForm() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Text("Student Login", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 30),
+        const Text("Staff Login", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 20),
+        
+        // Staff Name Dropdown (Real Data)
         DropdownButtonFormField<String>(
-          decoration: const InputDecoration(labelText: "Select Class"),
-          value: _selectedClass,
-          items: _availableClasses.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
-          onChanged: (val) async {
-            setState(() {
-              _selectedClass = val;
-              _selectedStudent = null;
-              _isLoading = true;
-            });
-            final students = await _authService.getStudentsByClass(val!);
-            setState(() {
-              _availableStudents = students;
-              _isLoading = false;
-            });
-          },
+          decoration: const InputDecoration(labelText: "Select Name"),
+          value: _selectedStaff,
+          items: _availableStaff.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+          onChanged: (val) => setState(() => _selectedStaff = val),
+          hint: const Text("Select Name"),
         ),
-        const SizedBox(height: 20),
-        Autocomplete<String>(
-          optionsBuilder: (v) => v.text.isEmpty ? const Iterable<String>.empty() : _availableStudents.where((s) => s.toLowerCase().contains(v.text.toLowerCase())),
-          onSelected: (s) => setState(() => _selectedStudent = s),
-          fieldViewBuilder: (ctx, ctrl, focus, onEdit) => TextField(
-            controller: ctrl, focusNode: focus, onEditingComplete: onEdit,
-            enabled: _selectedClass != null,
-            decoration: InputDecoration(labelText: "Student Name", hintText: _selectedClass == null ? "Select class first" : "Search name", suffixIcon: const Icon(Icons.search)),
-          ),
+        
+        const SizedBox(height: 15),
+        TextField(
+          controller: _staffPassController,
+          obscureText: true,
+          decoration: const InputDecoration(labelText: "Password"),
         ),
+        
         const SizedBox(height: 20),
-        TextField(controller: _studentPhoneController, decoration: const InputDecoration(labelText: "Phone Number", prefixIcon: Icon(Icons.phone)), keyboardType: TextInputType.phone, obscureText: true),
-        const SizedBox(height: 30),
-        ElevatedButton(onPressed: _handleStudentLogin, child: const Text("LOGIN AS STUDENT")),
+        ElevatedButton(
+          onPressed: _attemptLogin,
+          child: const Text("Login"),
+        ),
       ],
     );
   }
 
-  Widget _buildStaffLoginForm() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const Text("Staff / Management Login", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 30),
-        Autocomplete<String>(
-          optionsBuilder: (v) => v.text.isEmpty ? const Iterable<String>.empty() : _availableStaff.where((s) => s.toLowerCase().contains(v.text.toLowerCase())),
-          onSelected: (s) => setState(() => _selectedStaff = s),
-          fieldViewBuilder: (ctx, ctrl, focus, onEdit) => TextField(
-            controller: ctrl, focusNode: focus, onEditingComplete: onEdit,
-            decoration: const InputDecoration(labelText: "Your Name", hintText: "Search...", suffixIcon: Icon(Icons.person_search)),
-          ),
-        ),
-        const SizedBox(height: 20),
-        TextField(controller: _staffPassController, decoration: const InputDecoration(labelText: "Password", prefixIcon: Icon(Icons.lock)), obscureText: true),
-        const SizedBox(height: 30),
-        ElevatedButton(onPressed: _handleStaffLogin, child: const Text("LOGIN AS STAFF")),
-      ],
-    );
-  }
-
-  Widget _buildRoleCard(String title, IconData icon, Color color, Color textColor, VoidCallback onTap) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(12), border: Border.all(color: textColor.withOpacity(0.3))),
-        child: Row(children: [Icon(icon, size: 40, color: textColor), const SizedBox(width: 20), Expanded(child: Text(title, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textColor))), Icon(Icons.arrow_forward_ios, size: 16, color: textColor)]),
-      ),
-    );
-  }
-
-  void _handleStudentLogin() {
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Student Dashboard Coming Soon!")));
-  }
-
-  void _handleStaffLogin() async {
+  void _attemptLogin() async {
     if (_selectedStaff == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please select your Name")));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Select a Name")));
       return;
     }
     
-    // കീബോർഡ് താഴേക്ക് ഇറക്കുന്നു
-    FocusScope.of(context).unfocus();
-
     setState(() => _isLoading = true);
     
     try {
-      // Login Call
+      // Real Login Call
       String role = await _authService.loginStaff(_selectedStaff!, _staffPassController.text);
       
       if (!mounted) return;
@@ -216,19 +156,28 @@ class _LoginPageState extends State<LoginPage> {
 
       if (role == "admin") {
         Navigator.pushNamedAndRemoveUntil(context, '/admin', (route) => false);
-      } else if (role == "staff") {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Staff Dashboard Coming Soon!")));
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Staff Page Not Ready")));
       }
     } catch (e) {
       if (!mounted) return;
       setState(() => _isLoading = false);
-      // എറർ മെസ്സേജ് കൃത്യമായി കാണിക്കുന്നു
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Login Failed: ${e.toString().replaceAll('Exception:', '')}"),
-          backgroundColor: Colors.red,
-        ),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Login Failed: ${e.toString()}"), backgroundColor: Colors.red));
     }
+  }
+
+  Widget _roleCard(String title, IconData icon, Color color, VoidCallback tap) {
+    return InkWell(
+      onTap: tap,
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1), 
+          borderRadius: BorderRadius.circular(10), 
+          border: Border.all(color: color)
+        ),
+        child: Row(children: [Icon(icon, size: 30, color: color), const SizedBox(width: 20), Text(title, style: TextStyle(fontSize: 18, color: color))]),
+      ),
+    );
   }
 }
