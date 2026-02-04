@@ -3,6 +3,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'config/theme.dart';
 import 'config/firebase_options.dart';
 import 'public/public_page.dart';
+import 'auth/login_page.dart'; // പുതിയ ഫയൽ ഇമ്പോർട്ട് ചെയ്തു
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -17,7 +18,6 @@ class InstitutionApp extends StatefulWidget {
 }
 
 class _InstitutionAppState extends State<InstitutionApp> {
-  // ഫയർബേസ് ഇനിഷ്യലൈസ് ചെയ്യുന്ന ഫ്യൂച്ചർ
   final Future<FirebaseApp> _initialization = Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
@@ -26,49 +26,28 @@ class _InstitutionAppState extends State<InstitutionApp> {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      
-      // Updated App Name
       title: 'Fee edusy',
-      
       theme: AppTheme.lightTheme,
       
-      // FutureBuilder ഉപയോഗിക്കുന്നു
+      // റൂട്ടുകൾ ഇവിടെ രജിസ്റ്റർ ചെയ്യുന്നു
+      routes: {
+        '/login': (context) => const LoginPage(),
+        // '/admin': (context) => const AdminDashboard(), // പിന്നീട് ചേർക്കാം
+      },
+
       home: FutureBuilder(
         future: _initialization,
         builder: (context, snapshot) {
-          // 1. എറർ വന്നാൽ സ്ക്രീനിൽ കാണിക്കും
           if (snapshot.hasError) {
             return Scaffold(
-              body: Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(20.0),
-                  child: Text(
-                    "Something went wrong!\n\n${snapshot.error}",
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(color: Colors.red),
-                  ),
-                ),
-              ),
+              body: Center(child: Text("Error: ${snapshot.error}")),
             );
           }
-
-          // 2. കണക്ട് ആയിക്കഴിഞ്ഞാൽ പബ്ലിക് പേജ് കാണിക്കും
           if (snapshot.connectionState == ConnectionState.done) {
             return const PublicPage();
           }
-
-          // 3. കണക്ട് ആകുന്നത് വരെ ലോഡിംഗ് കാണിക്കും
           return const Scaffold(
-            body: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  CircularProgressIndicator(),
-                  SizedBox(height: 20),
-                  Text("Fee edusy Loading..."),
-                ],
-              ),
-            ),
+            body: Center(child: CircularProgressIndicator()),
           );
         },
       ),
