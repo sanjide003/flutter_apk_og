@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'tabs/dashboard_tab.dart'; // ടാബ് ഇമ്പോർട്ട് ചെയ്യുന്നു
+import 'package:firebase_auth/firebase_auth.dart';
+import 'tabs/dashboard_tab.dart';
 
 class AdminPage extends StatefulWidget {
   const AdminPage({super.key});
@@ -10,113 +11,52 @@ class AdminPage extends StatefulWidget {
 
 class _AdminPageState extends State<AdminPage> {
   int _selectedIndex = 0;
+  final User? currentUser = FirebaseAuth.instance.currentUser;
 
-  // 11 ടാബുകൾക്കുള്ള ലിസ്റ്റ് (ഇപ്പോൾ ഡാഷ്ബോർഡ് മാത്രം, ബാക്കി Placeholder)
+  // ടാബുകൾ (ഇപ്പോൾ ഡാഷ്ബോർഡ് മാത്രം, ബാക്കി Empty)
   final List<Widget> _tabs = [
     const DashboardTab(),
-    const Center(child: Text("Academic Year Management (Coming Soon)")),
-    const Center(child: Text("HR Management (Coming Soon)")),
-    const Center(child: Text("Student Management (Coming Soon)")),
-    const Center(child: Text("Fee Structure (Coming Soon)")),
-    const Center(child: Text("Fee Assignment (Coming Soon)")),
-    const Center(child: Text("Fee Collection (Coming Soon)")),
-    const Center(child: Text("Notices (Coming Soon)")),
-    const Center(child: Text("Reports (Coming Soon)")),
-    const Center(child: Text("Public Content (Coming Soon)")),
-    const Center(child: Text("Settings (Coming Soon)")),
-  ];
-
-  // ടാബ് പേരുകൾ
-  final List<String> _titles = [
-    "Dashboard",
-    "Academic Year",
-    "HR Management",
-    "Students",
-    "Fee Structure",
-    "Fee Assignment",
-    "Fee Collection",
-    "Notices",
-    "Reports",
-    "Public Content",
-    "Settings"
+    const Center(child: Text("Academic Year Mgmt - No Data")),
+    const Center(child: Text("HR Mgmt - No Data")),
+    // ... ബാക്കി ടാബുകൾ പിന്നീട് ഡാറ്റ വരുമ്പോൾ കാണിക്കാം
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(_titles[_selectedIndex]),
+        title: const Text("Admin Dashboard"),
         actions: [
-          // Logout Button
           IconButton(
             icon: const Icon(Icons.logout),
-            tooltip: "Logout",
-            onPressed: () {
-              // തിരിച്ച് ലോഗിനിലേക്ക് (Stack ക്ലിയർ ചെയ്യുന്നു)
-              Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+            onPressed: () async {
+              await FirebaseAuth.instance.signOut();
+              if (mounted) {
+                Navigator.pushNamedAndRemoveUntil(context, '/login', (r) => false);
+              }
             },
-          ),
+          )
         ],
       ),
-      // സൈഡ് മെനു (Drawer)
       drawer: Drawer(
         child: ListView(
-          padding: EdgeInsets.zero,
           children: [
-            UserAccountsDrawerHeader(
-              accountName: const Text("Admin User"),
-              accountEmail: const Text("Director / Principal"),
-              currentAccountPicture: const CircleAvatar(
-                backgroundColor: Colors.white,
-                child: Icon(Icons.admin_panel_settings, size: 40, color: Colors.blue),
-              ),
-              decoration: BoxDecoration(
-                color: Theme.of(context).primaryColor,
-              ),
+             UserAccountsDrawerHeader(
+              accountName: const Text("Administrator"),
+              accountEmail: Text(currentUser?.email ?? "No Email"),
+              currentAccountPicture: const CircleAvatar(child: Icon(Icons.person)),
             ),
-            // Menu Items
-            _buildNavItem(0, Icons.dashboard, "Dashboard"),
-            _buildNavItem(1, Icons.calendar_today, "Academic Year"),
-            _buildNavItem(2, Icons.people, "HR Management"),
-            _buildNavItem(3, Icons.school, "Students"),
-            _buildNavItem(4, Icons.monetization_on, "Fee Structure"),
-            _buildNavItem(5, Icons.assignment_ind, "Fee Assignment"),
-            _buildNavItem(6, Icons.payment, "Fee Collection"),
-            _buildNavItem(7, Icons.campaign, "Notices"),
-            _buildNavItem(8, Icons.bar_chart, "Reports"),
-            _buildNavItem(9, Icons.public, "Public Content"),
-            const Divider(),
-            _buildNavItem(10, Icons.settings, "Settings"),
+            ListTile(leading: const Icon(Icons.dashboard), title: const Text("Dashboard"), onTap: () => _select(0)),
+            // ബാക്കി മെനു ഐറ്റംസ് ഇവിടെ വരും
           ],
         ),
       ),
-      body: _tabs[_selectedIndex], // സെലക്ട് ചെയ്ത ടാബ് കാണിക്കുന്നു
+      body: _tabs.isNotEmpty ? _tabs[_selectedIndex] : const Center(child: Text("No Tabs")),
     );
   }
 
-  // മെനു ഐറ്റം ഡിസൈൻ
-  Widget _buildNavItem(int index, IconData icon, String title) {
-    bool isSelected = _selectedIndex == index;
-    return ListTile(
-      leading: Icon(
-        icon, 
-        color: isSelected ? Theme.of(context).primaryColor : Colors.grey[700]
-      ),
-      title: Text(
-        title,
-        style: TextStyle(
-          color: isSelected ? Theme.of(context).primaryColor : Colors.black87,
-          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-        ),
-      ),
-      selected: isSelected,
-      selectedTileColor: Theme.of(context).primaryColor.withOpacity(0.05),
-      onTap: () {
-        setState(() {
-          _selectedIndex = index;
-        });
-        Navigator.pop(context); // മെനു അടയ്ക്കുന്നു
-      },
-    );
+  void _select(int index) {
+    setState(() => _selectedIndex = index);
+    Navigator.pop(context);
   }
 }
