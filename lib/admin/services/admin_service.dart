@@ -5,71 +5,99 @@ class AdminService {
 
   // --- ACADEMIC YEAR MANAGEMENT ---
 
-  // 1. പുതിയ വർഷം ചേർക്കാൻ
+  // 1. Add Year
   Future<void> addAcademicYear(String name, DateTime start, DateTime end) async {
-    // ആദ്യം മറ്റെല്ലാ വർഷത്തെയും 'Active' മാറ്റുന്നു (ഒരേ സമയം ഒന്ന് മാത്രം ആക്ടീവ്)
+    // പുതിയത് ചേർക്കുമ്പോൾ അത് ഓട്ടോമാറ്റിക് ആയി ആക്ടീവ് ആക്കുന്നു
     await _deactivateAllYears();
-
     await _db.collection('academic_years').add({
-      'name': name, // Ex: "2025-2026"
+      'name': name,
       'startDate': start,
       'endDate': end,
-      'isActive': true, // പുതിയത് ചേർക്കുമ്പോൾ അത് ആക്ടീവ് ആകുന്നു
-      'createdAt': FieldValue.serverTimestamp(),
-    });
-  }
-
-  // 2. എല്ലാ വർഷങ്ങളും ഇനാക്ടീവ് ആക്കാൻ (Helper function)
-  Future<void> _deactivateAllYears() async {
-    final activeYears = await _db.collection('academic_years')
-        .where('isActive', isEqualTo: true)
-        .get();
-    
-    for (var doc in activeYears.docs) {
-      await doc.reference.update({'isActive': false});
-    }
-  }
-
-  // 3. വർഷങ്ങളുടെ ലിസ്റ്റ് എടുക്കാൻ (Stream)
-  Stream<QuerySnapshot> getAcademicYears() {
-    return _db.collection('academic_years')
-        .orderBy('startDate', descending: true)
-        .snapshots();
-  }
-
-  // --- HR MANAGEMENT (STAFF & MGMT) ---
-
-  // 4. പുതിയ സ്റ്റാഫിനെ ചേർക്കാൻ
-  Future<void> addStaffMember({
-    required String name,
-    required String phone,
-    required String role, // 'admin' or 'staff'
-    required String designation, // 'Teacher', 'Clerk', 'Principal'
-    required String email, // Login Email
-    required String password, // Login Password (For reference or manual creation)
-  }) async {
-    
-    await _db.collection('users').add({
-      'name': name,
-      'phone': phone,
-      'role': role,
-      'designation': designation,
-      'email': email,
-      'password': password, // ശ്രദ്ധിക്കുക: റിയൽ ആപ്പിൽ പാസ്‌വേഡ് ഇങ്ങനെ സേവ് ചെയ്യരുത്.
       'isActive': true,
       'createdAt': FieldValue.serverTimestamp(),
     });
   }
 
-  // 5. സ്റ്റാഫ് ലിസ്റ്റ് എടുക്കാൻ
-  Stream<QuerySnapshot> getStaffList() {
-    return _db.collection('users')
-        .orderBy('createdAt', descending: true)
-        .snapshots();
+  // 2. Update Year (Edit)
+  Future<void> updateAcademicYear(String docId, String name, DateTime start, DateTime end) async {
+    await _db.collection('academic_years').doc(docId).update({
+      'name': name,
+      'startDate': start,
+      'endDate': end,
+    });
   }
-  
-  // 6. സ്റ്റാഫിനെ ഡിലീറ്റ് ചെയ്യാൻ
+
+  // 3. Delete Year
+  Future<void> deleteAcademicYear(String docId) async {
+    await _db.collection('academic_years').doc(docId).delete();
+  }
+
+  // 4. Set Active Year (Toggle)
+  Future<void> setAcademicYearActive(String docId) async {
+    // ബാക്കിയുള്ളവ എല്ലാം Deactivate ചെയ്യുന്നു
+    await _deactivateAllYears();
+    // ഒരെണ്ണം മാത്രം Activate ചെയ്യുന്നു
+    await _db.collection('academic_years').doc(docId).update({'isActive': true});
+  }
+
+  // Helper: Deactivate All
+  Future<void> _deactivateAllYears() async {
+    final activeYears = await _db.collection('academic_years')
+        .where('isActive', isEqualTo: true)
+        .get();
+    for (var doc in activeYears.docs) {
+      await doc.reference.update({'isActive': false});
+    }
+  }
+
+  Stream<QuerySnapshot> getAcademicYears() {
+    return _db.collection('academic_years').orderBy('startDate', descending: true).snapshots();
+  }
+
+  // --- HR MANAGEMENT (STAFF & MGMT) ---
+
+  // 5. Add Staff/Management (Updated with Full Details)
+  Future<void> addStaffMember({
+    required String name,
+    required String phone, // Used as Password
+    required String category, // 'management' or 'staff' (Radio Button)
+    required String role, // Custom Input (e.g. Principal, Clerk)
+    required String address,
+    required String photoUrl,
+    String? msrNumber, // Only for Staff
+    String? email, 
+  }) async {
+    
+    // System Role logic: Management -> admin, Staff -> staff
+    String systemRole = category == 'management' ? 'admin' : 'staff';
+
+    await _db.collection('users').add({
+      'name': name,
+      'phone': phone,
+      'password': phone, // Phone itself is the password
+      'category': category, // 'management' or 'staff'
+      'role': systemRole, // 'admin' or 'staff' (For app logic)
+      'designation': role, // Display Role (e.g. "Maths Teacher")
+      'address': address,
+      'photoUrl': photoUrl,
+      'msrNumber': msrNumber ?? "", // Empty if management
+      'email': email ?? "",
+      'isActive': true,
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  // 6. Update Staff
+  Future<void> updateStaffMember(String docId, Map<String, dynamic> data) async {
+    await _db.collection('users').doc(docId).update(data);
+  }
+
+  // 7. Delete Staff
   Future<void> deleteStaff(String docId) async {
     await _db.collection('users').doc(docId).delete();
+  }
+
+  Stream<QuerySnapshot> getStaffList() {
+    return _db.collection('users').orderBy('createdAt', descending: true).snapshots();
   }
 }
