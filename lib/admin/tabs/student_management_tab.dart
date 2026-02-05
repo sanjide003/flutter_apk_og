@@ -23,7 +23,7 @@ class _StudentManagementTabState extends State<StudentManagementTab> {
       backgroundColor: Colors.grey[100],
       body: Column(
         children: [
-          // --- TOP BAR (Filter & Search) ---
+          // --- TOP BABARR ---
           Container(
             padding: const EdgeInsets.all(12),
             color: Colors.white,
@@ -42,7 +42,7 @@ class _StudentManagementTabState extends State<StudentManagementTab> {
                 const SizedBox(height: 10),
                 Row(
                   children: [
-                    // REAL CLASS FILTER (FROM DB)
+                    // CLASS FILTER
                     Expanded(
                       child: StreamBuilder<QuerySnapshot>(
                         stream: _adminService.getClasses(),
@@ -50,15 +50,12 @@ class _StudentManagementTabState extends State<StudentManagementTab> {
                           List<DropdownMenuItem<String>> classItems = [
                             const DropdownMenuItem(value: null, child: Text("All Classes")),
                           ];
-                          
                           if (snapshot.hasData) {
                             var classes = snapshot.data!.docs;
                             for (var doc in classes) {
-                              var name = doc['name'];
-                              classItems.add(DropdownMenuItem(value: name, child: Text(name)));
+                              classItems.add(DropdownMenuItem(value: doc['name'], child: Text(doc['name'])));
                             }
                           }
-
                           return DropdownButtonFormField<String>(
                             value: _selectedClassFilter,
                             decoration: const InputDecoration(labelText: "Filter Class", border: OutlineInputBorder(), contentPadding: EdgeInsets.symmetric(horizontal: 10)),
@@ -69,6 +66,7 @@ class _StudentManagementTabState extends State<StudentManagementTab> {
                       ),
                     ),
                     const SizedBox(width: 10),
+                    // GENDER FILTER
                     Expanded(
                       child: DropdownButtonFormField<String>(
                         value: _selectedGenderFilter,
@@ -83,7 +81,6 @@ class _StudentManagementTabState extends State<StudentManagementTab> {
                     ),
                   ],
                 ),
-                // ADD CLASS BUTTON
                 Align(
                   alignment: Alignment.centerRight,
                   child: TextButton.icon(
@@ -96,7 +93,7 @@ class _StudentManagementTabState extends State<StudentManagementTab> {
             ),
           ),
 
-          // --- STUDENT LIST ---
+          // --- LIST ---
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
               stream: _adminService.getStudents(),
@@ -177,45 +174,29 @@ class _StudentManagementTabState extends State<StudentManagementTab> {
   }
 
   // --- ACTIONS ---
-
   void _showAddClassDialog() {
     final classCtrl = TextEditingController();
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Add New Class"),
-        content: TextField(controller: classCtrl, decoration: const InputDecoration(labelText: "Class Name (Ex: 10 A)")),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
-          ElevatedButton(
-            onPressed: () {
-              if (classCtrl.text.isNotEmpty) {
-                _adminService.addClass(classCtrl.text);
-                Navigator.pop(context);
-              }
-            },
-            child: const Text("Add"),
-          )
-        ],
-      ),
-    );
+    showDialog(context: context, builder: (context) => AlertDialog(
+      title: const Text("Add New Class"),
+      content: TextField(controller: classCtrl, decoration: const InputDecoration(labelText: "Class Name (Ex: 10 A)")),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
+        ElevatedButton(onPressed: () { if (classCtrl.text.isNotEmpty) { _adminService.addClass(classCtrl.text); Navigator.pop(context); }}, child: const Text("Add"))
+      ],
+    ));
   }
 
   void _confirmDelete(String docId, String name) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text("Delete?"),
-        content: Text("Delete student '$name'?"),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("No")),
-          TextButton(onPressed: () { _adminService.deleteStudent(docId); Navigator.pop(ctx); }, child: const Text("Yes", style: TextStyle(color: Colors.red))),
-        ],
-      ),
-    );
+    showDialog(context: context, builder: (ctx) => AlertDialog(
+      title: const Text("Delete?"),
+      content: Text("Delete student '$name'?"),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("No")),
+        TextButton(onPressed: () { _adminService.deleteStudent(docId); Navigator.pop(ctx); }, child: const Text("Yes", style: TextStyle(color: Colors.red))),
+      ],
+    ));
   }
 
-  // --- SINGLE ADD DIALOG (REAL CLASSES) ---
   void _showAddStudentDialog() {
     final nameCtrl = TextEditingController();
     final parentCtrl = TextEditingController();
@@ -231,60 +212,44 @@ class _StudentManagementTabState extends State<StudentManagementTab> {
         builder: (context, setState) => AlertDialog(
           title: const Text("Add Student"),
           content: SingleChildScrollView(
-            child: Column(
-              children: [
-                StreamBuilder<QuerySnapshot>(
-                  stream: _adminService.getClasses(),
-                  builder: (context, snapshot) {
-                    if (!snapshot.hasData) return const LinearProgressIndicator();
-                    var classes = snapshot.data!.docs.map((d) => d['name'].toString()).toList();
-                    if (classes.isEmpty) return const Text("Please Add Classes First", style: TextStyle(color: Colors.red));
-                    
-                    return DropdownButtonFormField<String>(
-                      value: selectedClass,
-                      items: classes.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
-                      onChanged: (v) => setState(() => selectedClass = v),
-                      decoration: const InputDecoration(labelText: "Class *"),
-                    );
-                  },
-                ),
-                DropdownButtonFormField<String>(
-                  value: gender,
-                  items: ["Male", "Female"].map((g) => DropdownMenuItem(value: g, child: Text(g))).toList(),
-                  onChanged: (v) => setState(() => gender = v!),
-                  decoration: const InputDecoration(labelText: "Gender *"),
-                ),
-                const SizedBox(height: 10),
-                TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: "Name *")),
-                const Divider(),
-                TextField(controller: parentCtrl, decoration: const InputDecoration(labelText: "Parent Name")),
-                TextField(controller: uidCtrl, decoration: const InputDecoration(labelText: "UID")),
-                TextField(controller: phoneCtrl, decoration: const InputDecoration(labelText: "Phone"), keyboardType: TextInputType.phone),
-                TextField(controller: addressCtrl, decoration: const InputDecoration(labelText: "Address")),
-              ],
-            ),
+            child: Column(children: [
+              StreamBuilder<QuerySnapshot>(
+                stream: _adminService.getClasses(),
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData) return const SizedBox();
+                  var classes = snapshot.data!.docs.map((d) => d['name'].toString()).toList();
+                  return DropdownButtonFormField<String>(
+                    value: selectedClass,
+                    items: classes.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+                    onChanged: (v) => setState(() => selectedClass = v),
+                    decoration: const InputDecoration(labelText: "Class *"),
+                  );
+                },
+              ),
+              DropdownButtonFormField<String>(value: gender, items: ["Male", "Female"].map((g) => DropdownMenuItem(value: g, child: Text(g))).toList(), onChanged: (v) => setState(() => gender = v!), decoration: const InputDecoration(labelText: "Gender *")),
+              const SizedBox(height: 10),
+              TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: "Name *")),
+              const Divider(),
+              TextField(controller: parentCtrl, decoration: const InputDecoration(labelText: "Parent Name")),
+              TextField(controller: uidCtrl, decoration: const InputDecoration(labelText: "UID")),
+              TextField(controller: phoneCtrl, decoration: const InputDecoration(labelText: "Phone")),
+              TextField(controller: addressCtrl, decoration: const InputDecoration(labelText: "Address")),
+            ]),
           ),
           actions: [
             TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
-            ElevatedButton(
-              onPressed: () {
-                if (nameCtrl.text.isNotEmpty && selectedClass != null) {
-                  _adminService.addStudent(
-                    name: nameCtrl.text, gender: gender, className: selectedClass!,
-                    parentName: parentCtrl.text, uidNumber: uidCtrl.text, phone: phoneCtrl.text, address: addressCtrl.text,
-                  );
-                  Navigator.pop(context);
-                }
-              },
-              child: const Text("Save"),
-            ),
+            ElevatedButton(onPressed: () {
+              if (nameCtrl.text.isNotEmpty && selectedClass != null) {
+                _adminService.addStudent(name: nameCtrl.text, gender: gender, className: selectedClass!, parentName: parentCtrl.text, uidNumber: uidCtrl.text, phone: phoneCtrl.text, address: addressCtrl.text);
+                Navigator.pop(context);
+              }
+            }, child: const Text("Save")),
           ],
         ),
       ),
     );
   }
 
-  // --- BULK ADD DIALOG (REAL CLASSES) ---
   void _showColumnBulkAddDialog() {
     final nameCtrl = TextEditingController();
     final parentCtrl = TextEditingController();
@@ -294,96 +259,55 @@ class _StudentManagementTabState extends State<StudentManagementTab> {
     String gender = "Male";
     String? selectedClass;
 
-    showDialog(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: const Text("Bulk Add"),
-          content: SizedBox(
-            width: double.maxFinite,
-            child: SingleChildScrollView(
-              child: Column(
-                children: [
-                  StreamBuilder<QuerySnapshot>(
-                    stream: _adminService.getClasses(),
-                    builder: (context, snapshot) {
-                      if (!snapshot.hasData) return const SizedBox();
-                      var classes = snapshot.data!.docs.map((d) => d['name'].toString()).toList();
-                      return DropdownButtonFormField<String>(
-                        value: selectedClass,
-                        items: classes.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
-                        onChanged: (v) => setState(() => selectedClass = v),
-                        decoration: const InputDecoration(labelText: "Select Batch Class"),
-                      );
-                    },
-                  ),
-                  DropdownButtonFormField<String>(
-                    value: gender,
-                    items: ["Male", "Female"].map((g) => DropdownMenuItem(value: g, child: Text(g))).toList(),
-                    onChanged: (v) => setState(() => gender = v!),
-                    decoration: const InputDecoration(labelText: "Select Batch Gender"),
-                  ),
-                  const Divider(),
-                  _buildBulkTextField(nameCtrl, "Paste NAMES Column Here (Required)"),
-                  _buildBulkTextField(parentCtrl, "Paste PARENTS Column"),
-                  _buildBulkTextField(phoneCtrl, "Paste PHONE Column"),
-                  _buildBulkTextField(uidCtrl, "Paste UID Column"),
-                  _buildBulkTextField(addressCtrl, "Paste ADDRESS Column"),
-                ],
-              ),
-            ),
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
-            ElevatedButton(
-              onPressed: () {
-                if (selectedClass != null && nameCtrl.text.isNotEmpty) {
-                  _processBulkData(selectedClass!, gender, nameCtrl.text, parentCtrl.text, phoneCtrl.text, uidCtrl.text, addressCtrl.text);
-                  Navigator.pop(context);
-                }
-              },
-              child: const Text("Process"),
-            ),
-          ],
+    showDialog(context: context, builder: (context) => StatefulBuilder(builder: (context, setState) => AlertDialog(
+      title: const Text("Bulk Add (Excel Columns)"),
+      content: SizedBox(width: double.maxFinite, child: SingleChildScrollView(child: Column(children: [
+        StreamBuilder<QuerySnapshot>(
+          stream: _adminService.getClasses(),
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) return const SizedBox();
+            var classes = snapshot.data!.docs.map((d) => d['name'].toString()).toList();
+            return DropdownButtonFormField<String>(
+              value: selectedClass,
+              items: classes.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+              onChanged: (v) => setState(() => selectedClass = v),
+              decoration: const InputDecoration(labelText: "Class"),
+            );
+          },
         ),
-      ),
-    );
+        DropdownButtonFormField<String>(value: gender, items: ["Male", "Female"].map((g) => DropdownMenuItem(value: g, child: Text(g))).toList(), onChanged: (v) => setState(() => gender = v!), decoration: const InputDecoration(labelText: "Gender")),
+        const Divider(),
+        _buildBulkTextField(nameCtrl, "Paste NAMES Column"),
+        _buildBulkTextField(parentCtrl, "Paste PARENTS Column"),
+        _buildBulkTextField(phoneCtrl, "Paste PHONE Column"),
+        _buildBulkTextField(uidCtrl, "Paste UIDs Column"),
+        _buildBulkTextField(addressCtrl, "Paste ADDRESS Column"),
+      ]))),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
+        ElevatedButton(onPressed: () {
+          if (selectedClass != null && nameCtrl.text.isNotEmpty) {
+            _processBulkData(selectedClass!, gender, nameCtrl.text, parentCtrl.text, phoneCtrl.text, uidCtrl.text, addressCtrl.text);
+            Navigator.pop(context);
+          }
+        }, child: const Text("Process")),
+      ],
+    )));
   }
 
   void _showEditStudentDialog(String docId, Map<String, dynamic> data) {
     final nameCtrl = TextEditingController(text: data['name']);
-    String selectedClass = data['className']; // For edit, we assume class exists or keep old one
-    String gender = data['gender'];
-    
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Edit Student"),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: "Name")),
-            // More fields can be added here
-          ],
-        ),
-        actions: [
-          ElevatedButton(
-            onPressed: () {
-              _adminService.updateStudent(docId, {'name': nameCtrl.text});
-              Navigator.pop(context);
-            },
-            child: const Text("Update"),
-          )
-        ],
-      ),
-    );
+    showDialog(context: context, builder: (context) => AlertDialog(
+      title: const Text("Edit Student"),
+      content: TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: "Name")),
+      actions: [
+        ElevatedButton(onPressed: () { _adminService.updateStudent(docId, {'name': nameCtrl.text}); Navigator.pop(context); }, child: const Text("Update")),
+      ],
+    ));
   }
 
   Widget _buildBulkTextField(TextEditingController ctrl, String hint) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8.0),
-      child: TextField(controller: ctrl, maxLines: 3, style: const TextStyle(fontSize: 12), decoration: InputDecoration(labelText: hint, border: const OutlineInputBorder())),
-    );
+    return Padding(padding: const EdgeInsets.only(bottom: 8.0), child: TextField(controller: ctrl, maxLines: 3, style: const TextStyle(fontSize: 12), decoration: InputDecoration(labelText: hint, border: const OutlineInputBorder())));
   }
 
   void _processBulkData(String className, String gender, String namesRaw, String parentsRaw, String phonesRaw, String uidsRaw, String addrRaw) {
@@ -392,7 +316,6 @@ class _StudentManagementTabState extends State<StudentManagementTab> {
     List<String> phones = phonesRaw.split('\n');
     List<String> uids = uidsRaw.split('\n');
     List<String> addrs = addrRaw.split('\n');
-
     List<Map<String, String>> students = [];
     for (int i = 0; i < names.length; i++) {
       students.add({
