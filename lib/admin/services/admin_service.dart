@@ -111,7 +111,17 @@ class AdminService {
   }
 
   Future<void> updateStudent(String docId, Map<String, dynamic> data) async => await _db.collection('students').doc(docId).update(data);
+  
   Future<void> deleteStudent(String docId) async => await _db.collection('students').doc(docId).delete();
+  
+  // NEW: Bulk Delete
+  Future<void> deleteBulkStudents(List<String> docIds) async {
+    final batch = _db.batch();
+    for (var id in docIds) {
+      batch.delete(_db.collection('students').doc(id));
+    }
+    await batch.commit();
+  }
   
   Future<void> addBulkStudents(String className, String gender, List<Map<String, String>> studentsData) async {
     final batch = _db.batch();
@@ -130,8 +140,6 @@ class AdminService {
     await batch.commit();
   }
 
-  // --- FIX: SIMPLIFIED QUERY ---
-  // സങ്കീർണ്ണമായ orderBy ഒഴിവാക്കി, ആപ്പിനുള്ളിൽ സോർട്ട് ചെയ്യുന്നു
   Stream<QuerySnapshot> getStudents() {
     return _db.collection('students')
         .orderBy('createdAt', descending: true) 
