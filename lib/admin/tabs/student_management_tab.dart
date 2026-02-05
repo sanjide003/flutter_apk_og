@@ -23,7 +23,7 @@ class _StudentManagementTabState extends State<StudentManagementTab> {
       backgroundColor: Colors.grey[100],
       body: Column(
         children: [
-          // --- TOP BABARR ---
+          // --- TOP BAR ---
           Container(
             padding: const EdgeInsets.all(12),
             color: Colors.white,
@@ -42,7 +42,6 @@ class _StudentManagementTabState extends State<StudentManagementTab> {
                 const SizedBox(height: 10),
                 Row(
                   children: [
-                    // CLASS FILTER
                     Expanded(
                       child: StreamBuilder<QuerySnapshot>(
                         stream: _adminService.getClasses(),
@@ -53,7 +52,8 @@ class _StudentManagementTabState extends State<StudentManagementTab> {
                           if (snapshot.hasData) {
                             var classes = snapshot.data!.docs;
                             for (var doc in classes) {
-                              classItems.add(DropdownMenuItem(value: doc['name'], child: Text(doc['name'])));
+                              var name = doc['name'];
+                              classItems.add(DropdownMenuItem(value: name, child: Text(name)));
                             }
                           }
                           return DropdownButtonFormField<String>(
@@ -66,7 +66,6 @@ class _StudentManagementTabState extends State<StudentManagementTab> {
                       ),
                     ),
                     const SizedBox(width: 10),
-                    // GENDER FILTER
                     Expanded(
                       child: DropdownButtonFormField<String>(
                         value: _selectedGenderFilter,
@@ -98,10 +97,17 @@ class _StudentManagementTabState extends State<StudentManagementTab> {
             child: StreamBuilder<QuerySnapshot>(
               stream: _adminService.getStudents(),
               builder: (context, snapshot) {
+                // എറർ ഉണ്ടെങ്കിൽ കാണിക്കാൻ
+                if (snapshot.hasError) {
+                  return Center(child: Text("Error: ${snapshot.error}"));
+                }
+
                 if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
                 
-                var allStudents = snapshot.data!.docs;
-                var filtered = allStudents.where((doc) {
+                var allDocs = snapshot.data!.docs;
+                
+                // Filtering Logic
+                var filtered = allDocs.where((doc) {
                   var data = doc.data() as Map<String, dynamic>;
                   String name = (data['name'] ?? "").toString().toLowerCase();
                   
@@ -110,6 +116,20 @@ class _StudentManagementTabState extends State<StudentManagementTab> {
                   if (_selectedGenderFilter != null && data['gender'] != _selectedGenderFilter) return false;
                   return true;
                 }).toList();
+
+                // SORTING (Class -> Gender -> SerialNo) Client-Side
+                filtered.sort((a, b) {
+                  var da = a.data() as Map<String, dynamic>;
+                  var db = b.data() as Map<String, dynamic>;
+                  
+                  int classComp = (da['className'] ?? "").compareTo(db['className'] ?? "");
+                  if (classComp != 0) return classComp;
+                  
+                  int genderComp = (da['gender'] ?? "").compareTo(db['gender'] ?? "");
+                  if (genderComp != 0) return genderComp;
+                  
+                  return (da['serialNo'] ?? 0).compareTo(db['serialNo'] ?? 0);
+                });
 
                 if (filtered.isEmpty) return const Center(child: Text("No Students Found"));
 
