@@ -5,7 +5,9 @@ import 'tabs/academic_year_tab.dart';
 import 'tabs/hr_management_tab.dart';
 import 'tabs/student_management_tab.dart';
 import 'tabs/fee_structure_tab.dart';
+import 'tabs/fee_concession_tab.dart'; // New
 import 'tabs/notices_tab.dart';
+import 'tabs/reports_tab.dart'; // New
 
 class AdminPage extends StatefulWidget {
   const AdminPage({super.key});
@@ -16,36 +18,34 @@ class AdminPage extends StatefulWidget {
 
 class _AdminPageState extends State<AdminPage> {
   int _selectedIndex = 0;
-  
-  // നാവിഗേഷൻ ഹിസ്റ്ററി (ബാക്ക് അടിക്കുമ്പോൾ പഴയ ടാബിലേക്ക് പോകാൻ)
   final List<int> _navHistory = [0]; 
   final User? currentUser = FirebaseAuth.instance.currentUser;
 
-  // എല്ലാ ടാബുകളും ഇവിടെ ലിങ്ക് ചെയ്തിരിക്കുന്നു
+  // ALL 10 TABS
   final List<Widget> _tabs = [
     const DashboardTab(),          // 0
     const AcademicYearTab(),       // 1
     const HrManagementTab(),       // 2
     const StudentManagementTab(),  // 3
     const FeeStructureTab(),       // 4
-    const Center(child: Text("Fee Assignment (Use Student Profile)")), // 5 (Placeholder)
-    const Center(child: Text("Fee Collection (Use Staff App)")),       // 6 (Placeholder)
-    const NoticesTab(),            // 7
-    const Center(child: Text("Reports (Coming Soon)")),                // 8
-    const Center(child: Text("Public Content (Coming Soon)")),         // 9
+    const FeeConcessionTab(),      // 5 (Concessions & Groups)
+    const Center(child: Text("Fee Collection (Use Staff App Logic)")), // 6
+    const ReportsTab(),            // 7
+    const NoticesTab(),            // 8
+    const Center(child: Text("Public Content Settings")),              // 9
     const Center(child: Text("Settings")),                             // 10
   ];
 
   final List<String> _titles = [
     "Dashboard", "Academic Year", "HR Management", "Students", 
-    "Fee Structure", "Fee Assignment", "Fee Collection", 
-    "Notices", "Reports", "Public Content", "Settings"
+    "Fee Structure", "Concessions", "Fee Collection", 
+    "Reports", "Notices", "Public Content", "Settings"
   ];
 
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      canPop: false, // ബാക്ക് ബട്ടൺ നമ്മൾ കൈകാര്യം ചെയ്യുന്നു
+      canPop: false,
       onPopInvoked: (didPop) {
         if (didPop) return;
         if (_navHistory.length > 1) {
@@ -54,7 +54,6 @@ class _AdminPageState extends State<AdminPage> {
             _selectedIndex = _navHistory.last;
           });
         } else {
-          // ഡാഷ്ബോർഡിൽ എത്തിയാൽ ആപ്പ് ക്ലോസ് ചെയ്യാം
           Navigator.of(context).pop();
         }
       },
@@ -91,11 +90,11 @@ class _AdminPageState extends State<AdminPage> {
               _item(3, Icons.school, "Student Management"),
               const Divider(),
               _item(4, Icons.monetization_on, "Fee Structure"),
-              _item(5, Icons.assignment_ind, "Fee Assignment"),
+              _item(5, Icons.group_work, "Fee Concessions"),
               _item(6, Icons.payment, "Fee Collection"),
+              _item(7, Icons.bar_chart, "Reports"),
               const Divider(),
-              _item(7, Icons.campaign, "Notices"),
-              _item(8, Icons.bar_chart, "Reports"),
+              _item(8, Icons.campaign, "Notices"),
               _item(9, Icons.public, "Public Content"),
               _item(10, Icons.settings, "Settings"),
             ],
@@ -110,13 +109,7 @@ class _AdminPageState extends State<AdminPage> {
     bool selected = _selectedIndex == index;
     return ListTile(
       leading: Icon(icon, color: selected ? Colors.blue : Colors.grey),
-      title: Text(
-        title,
-        style: TextStyle(
-          color: selected ? Colors.blue : Colors.black,
-          fontWeight: selected ? FontWeight.bold : FontWeight.normal
-        ),
-      ),
+      title: Text(title, style: TextStyle(color: selected ? Colors.blue : Colors.black, fontWeight: selected ? FontWeight.bold : FontWeight.normal)),
       selected: selected,
       selectedTileColor: Colors.blue.withOpacity(0.1),
       onTap: () {
