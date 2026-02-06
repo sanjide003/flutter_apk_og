@@ -2,71 +2,83 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/admin_service.dart';
 
-class FeeStructureTab extends StatelessWidget {
+class FeeStructureTab extends StatefulWidget {
   const FeeStructureTab({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final AdminService adminService = AdminService();
-    final nameCtrl = TextEditingController();
-    final amountCtrl = TextEditingController();
+  State<FeeStructureTab> createState() => _FeeStructureTabState();
+}
 
+class _FeeStructureTabState extends State<FeeStructureTab> {
+  final AdminService _service = AdminService();
+  final TextEditingController _amountCtrl = TextEditingController();
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[100],
-      body: StreamBuilder<QuerySnapshot>(
-        stream: adminService.getFeeStructures(),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-          var fees = snapshot.data!.docs;
-          if (fees.isEmpty) return const Center(child: Text("No Fee Structures Created"));
-
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: fees.length,
-            itemBuilder: (context, index) {
-              var data = fees[index].data() as Map<String, dynamic>;
-              return Card(
-                child: ListTile(
-                  leading: const CircleAvatar(child: Icon(Icons.attach_money)),
-                  title: Text(data['name'], style: const TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: Text(data['type'] == 'monthly' ? "Monthly Fee" : "One-time Fee"),
-                  trailing: Text("₹ ${data['amount']}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                  onLongPress: () => adminService.deleteFeeStructure(fees[index].id),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // DEFAULT FEE SETUP
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  children: [
+                    const Text("Default Monthly Fee Setup", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: _amountCtrl,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(labelText: "Monthly Amount (₹)", border: OutlineInputBorder()),
+                    ),
+                    const SizedBox(height: 10),
+                    ElevatedButton(
+                      onPressed: () {
+                        // In real implementation, get active Year ID
+                        _service.initDefaultFeeStructure("YEAR_ID_PLACEHOLDER", double.tryParse(_amountCtrl.text) ?? 0);
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Default 12 Months Generated")));
+                      },
+                      child: const Text("Generate 12 Months"),
+                    )
+                  ],
                 ),
-              );
-            },
-          );
-        },
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        label: const Text("Create Fee"),
-        icon: const Icon(Icons.add),
-        onPressed: () {
-          showDialog(
-            context: context,
-            builder: (ctx) => AlertDialog(
-              title: const Text("New Fee Structure"),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: "Fee Name (Ex: Tuition Fee)")),
-                  TextField(controller: amountCtrl, decoration: const InputDecoration(labelText: "Amount"), keyboardType: TextInputType.number),
-                ],
               ),
-              actions: [
-                ElevatedButton(
-                  onPressed: () {
-                    if (nameCtrl.text.isNotEmpty) {
-                      adminService.addFeeStructure(nameCtrl.text, double.tryParse(amountCtrl.text) ?? 0, 'monthly');
-                      Navigator.pop(ctx);
-                    }
-                  },
-                  child: const Text("Save"),
-                )
-              ],
             ),
-          );
-        },
+            const SizedBox(height: 20),
+            
+            const Text("Fee Structures", style: TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 10),
+            
+            // LIST (Streams)
+            StreamBuilder<QuerySnapshot>(
+              stream: _service.getDefaultFees(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) return const SizedBox();
+                var fees = snapshot.data!.docs;
+                
+                return ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: fees.length,
+                  itemBuilder: (context, index) {
+                    var data = fees[index].data() as Map<String, dynamic>;
+                    return Card(
+                      child: ListTile(
+                        leading: CircleAvatar(child: Text("${data['order']}")),
+                        title: Text(data['month']),
+                        trailing: Text("₹ ${data['amount']}"),
+                      ),
+                    );
+                  },
+                );
+              },
+            )
+          ],
+        ),
       ),
     );
   }
