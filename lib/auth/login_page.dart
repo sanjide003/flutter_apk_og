@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'auth_service.dart';
+import '../student/student_page.dart'; // To navigate to student page
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -10,55 +11,84 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   final AuthService _authService = AuthService();
-
-  int _viewState = 0; // 0: Select, 1: Student, 2: Staff
+  bool _isStudentLogin = true; // Toggle between Student & Staff
   bool _isLoading = false;
-  bool _isPasswordVisible = false; // പാസ്‌വേഡ് കാണാൻ
+  bool _obscurePass = true;
 
-  // Inputs
-  String? _selectedStaffName; // To store selected name
-  final TextEditingController _staffPassController = TextEditingController();
-  List<String> _availableStaff = [];
+  // Student Controllers
+  String? _selectedClass;
+  Map<String, dynamic>? _selectedStudent;
+  final TextEditingController _studentPassCtrl = TextEditingController();
+  List<Map<String, dynamic>> _classStudents = [];
 
-  @override
-  void initState() {
-    super.initState();
-    _loadData();
-  }
-
-  void _loadData() async {
-    final staff = await _authService.getStaffNames();
-    if (mounted) setState(() => _availableStaff = staff);
-  }
+  // Staff Controllers
+  final TextEditingController _staffIdCtrl = TextEditingController();
+  final TextEditingController _staffPassCtrl = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: const Text("Login Portal"),
-        leading: IconButton(
-          icon: Icon(_viewState == 0 ? Icons.close : Icons.arrow_back),
-          onPressed: () {
-            if (_viewState == 0) {
-              Navigator.pop(context);
-            } else {
-              setState(() {
-                _viewState = 0; // Back to selection
-                _selectedStaffName = null;
-                _staffPassController.clear();
-              });
-            }
-          },
-        ),
-      ),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(24),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 400),
-              child: _buildBody(),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Logo
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(color: Colors.blue.shade50, shape: BoxShape.circle),
+                    child: const Icon(Icons.school, size: 50, color: Colors.blue),
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    _isStudentLogin ? "Student Portal" : "Staff / Admin Portal",
+                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    _isStudentLogin ? "Login to view your details" : "Login to manage operations",
+                    style: const TextStyle(color: Colors.grey),
+                  ),
+                  const SizedBox(height: 30),
+
+                  // LOGIN FORMS
+                  if (_isLoading) 
+                    const CircularProgressIndicator()
+                  else if (_isStudentLogin) 
+                    _buildStudentForm()
+                  else 
+                    _buildStaffForm(),
+
+                  const SizedBox(height: 30),
+                  
+                  // TOGGLE LINK
+                  TextButton(
+                    onPressed: () {
+                      setState(() {
+                        _isStudentLogin = !_isStudentLogin;
+                        _clearForms();
+                      });
+                    },
+                    child: Text.rich(
+                      TextSpan(
+                        text: _isStudentLogin ? "Are you a Staff/Management? " : "Are you a Student? ",
+                        style: const TextStyle(color: Colors.grey),
+                        children: [
+                          TextSpan(
+                            text: "Click Here",
+                            style: TextStyle(color: Theme.of(context).primaryColor, fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -66,124 +96,172 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  Widget _buildBody() {
-    if (_isLoading) return const Center(child: CircularProgressIndicator());
-    if (_viewState == 2) return _staffForm();
-    if (_viewState == 1) return const Center(child: Text("Student Portal - Under Maintenance"));
-    return _selectionScreen();
+  void _clearForms() {
+    _selectedClass = null;
+    _selectedStudent = null;
+    _studentPassCtrl.clear();
+    _staffIdCtrl.clear();
+    _staffPassCtrl.clear();
+    _classStudents = [];
   }
 
-  Widget _selectionScreen() {
+  // --- STUDENT FORM ---
+  Widget _buildStudentForm() {
     return Column(
       children: [
-        const Text("Who are you?", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 40),
-        _roleCard("Management / Staff", Icons.badge, Colors.orange, () => setState(() => _viewState = 2)),
-        const SizedBox(height: 20),
-        _roleCard("Student / Parent", Icons.school, Colors.blue, () => setState(() => _viewState = 1)),
-      ],
-    );
-  }
-
-  Widget _staffForm() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const Text("Staff Login", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 30),
-
-        // 1. NAME SEARCH INPUT (AUTOCOMPLETE)
-        Autocomplete<String>(
-          optionsBuilder: (TextEditingValue textEditingValue) {
-            if (textEditingValue.text.isEmpty) {
-              return const Iterable<String>.empty();
-            }
-            return _availableStaff.where((String option) {
-              return option.toLowerCase().contains(textEditingValue.text.toLowerCase());
-            });
-          },
-          onSelected: (String selection) {
-            _selectedStaffName = selection;
-          },
-          fieldViewBuilder: (context, controller, focusNode, onEditingComplete) {
-            return TextField(
-              controller: controller,
-              focusNode: focusNode,
-              onEditingComplete: onEditingComplete,
-              decoration: const InputDecoration(
-                labelText: "Type your Name",
-                prefixIcon: Icon(Icons.person_search),
-                hintText: "Search name...",
-                border: OutlineInputBorder(),
-              ),
+        // 1. CLASS DROPDOWN
+        StreamBuilder(
+          stream: _authService.getActiveClasses(),
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) return const LinearProgressIndicator();
+            var classes = snapshot.data!.docs.map((d) => d['name'].toString()).toList();
+            
+            return DropdownButtonFormField<String>(
+              value: _selectedClass,
+              decoration: const InputDecoration(labelText: "Select Class", border: OutlineInputBorder(), prefixIcon: Icon(Icons.class_)),
+              items: classes.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+              onChanged: (val) async {
+                setState(() {
+                  _selectedClass = val;
+                  _selectedStudent = null;
+                  _isLoading = true;
+                });
+                var students = await _authService.getStudentsForLogin(val!);
+                setState(() {
+                  _classStudents = students;
+                  _isLoading = false;
+                });
+              },
             );
           },
         ),
-        
-        const SizedBox(height: 20),
+        const SizedBox(height: 15),
 
-        // 2. PASSWORD INPUT (WITH EYE ICON)
+        // 2. NAME AUTO-SUGGEST (Dropdown logic for simplicity or Autocomplete)
+        DropdownButtonFormField<Map<String, dynamic>>(
+          value: _selectedStudent,
+          decoration: const InputDecoration(labelText: "Select Your Name", border: OutlineInputBorder(), prefixIcon: Icon(Icons.person)),
+          hint: const Text("Choose Name"),
+          items: _classStudents.map((s) {
+            return DropdownMenuItem<Map<String, dynamic>>(
+              value: s,
+              child: Text(s['name']),
+            );
+          }).toList(),
+          onChanged: (val) => setState(() => _selectedStudent = val),
+        ),
+        const SizedBox(height: 15),
+
+        // 3. PHONE / PASSWORD
         TextField(
-          controller: _staffPassController,
-          obscureText: !_isPasswordVisible,
+          controller: _studentPassCtrl,
+          keyboardType: TextInputType.phone,
+          obscureText: _obscurePass,
           decoration: InputDecoration(
-            labelText: "Password",
-            prefixIcon: const Icon(Icons.lock),
+            labelText: "Phone Number (Password)",
+            prefixIcon: const Icon(Icons.phone),
             border: const OutlineInputBorder(),
             suffixIcon: IconButton(
-              icon: Icon(_isPasswordVisible ? Icons.visibility : Icons.visibility_off),
-              onPressed: () {
-                setState(() {
-                  _isPasswordVisible = !_isPasswordVisible;
-                });
-              },
+              icon: Icon(_obscurePass ? Icons.visibility_off : Icons.visibility),
+              onPressed: () => setState(() => _obscurePass = !_obscurePass),
             ),
           ),
         ),
-        
-        const SizedBox(height: 30),
-        ElevatedButton(
-          onPressed: _attemptLogin,
-          style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 15)),
-          child: const Text("LOGIN", style: TextStyle(fontSize: 16)),
+        const SizedBox(height: 20),
+
+        SizedBox(
+          width: double.infinity,
+          height: 50,
+          child: ElevatedButton(
+            onPressed: _handleStudentLogin,
+            child: const Text("LOGIN"),
+          ),
         ),
       ],
     );
   }
 
-  void _attemptLogin() async {
-    if (_selectedStaffName == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please search and select a valid Name")));
+  // --- STAFF FORM ---
+  Widget _buildStaffForm() {
+    return Column(
+      children: [
+        TextField(
+          controller: _staffIdCtrl,
+          decoration: const InputDecoration(labelText: "Username / Gmail", border: OutlineInputBorder(), prefixIcon: Icon(Icons.person)),
+        ),
+        const SizedBox(height: 15),
+        TextField(
+          controller: _staffPassCtrl,
+          obscureText: _obscurePass,
+          decoration: InputDecoration(
+            labelText: "Password",
+            border: const OutlineInputBorder(),
+            prefixIcon: const Icon(Icons.lock),
+            suffixIcon: IconButton(
+              icon: Icon(_obscurePass ? Icons.visibility_off : Icons.visibility),
+              onPressed: () => setState(() => _obscurePass = !_obscurePass),
+            ),
+          ),
+        ),
+        const SizedBox(height: 20),
+        SizedBox(
+          width: double.infinity,
+          height: 50,
+          child: ElevatedButton(
+            onPressed: _handleStaffLogin,
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+            child: const Text("LOGIN AS STAFF/ADMIN"),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // --- ACTIONS ---
+
+  void _handleStudentLogin() async {
+    if (_selectedStudent == null || _studentPassCtrl.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Select Name and enter Phone Number")));
       return;
     }
-    
     setState(() => _isLoading = true);
     
-    try {
-      String role = await _authService.loginStaff(_selectedStaffName!, _staffPassController.text);
-      if (!mounted) return;
-      setState(() => _isLoading = false);
+    bool isValid = await _authService.verifyStudentLogin(_selectedStudent!['id'], _studentPassCtrl.text);
+    
+    if (!mounted) return;
+    setState(() => _isLoading = false);
 
+    if (isValid) {
+      // Navigate to Student Dashboard
+      Navigator.pushReplacement(
+        context, 
+        MaterialPageRoute(builder: (_) => StudentPage(
+          studentId: _selectedStudent!['id'], 
+          studentName: _selectedStudent!['name'])
+        )
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Invalid Phone Number"), backgroundColor: Colors.red));
+    }
+  }
+
+  void _handleStaffLogin() async {
+    if (_staffIdCtrl.text.isEmpty || _staffPassCtrl.text.isEmpty) return;
+    setState(() => _isLoading = true);
+
+    try {
+      String role = await _authService.loginStaff(_staffIdCtrl.text, _staffPassCtrl.text);
+      if (!mounted) return;
+      
       if (role == "admin") {
         Navigator.pushNamedAndRemoveUntil(context, '/admin', (r) => false);
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Staff Page - Coming Soon")));
+        Navigator.pushNamedAndRemoveUntil(context, '/staff', (r) => false);
       }
     } catch (e) {
       if (!mounted) return;
       setState(() => _isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: Colors.red));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Login Failed: ${e.toString()}"), backgroundColor: Colors.red));
     }
-  }
-
-  Widget _roleCard(String title, IconData icon, Color color, VoidCallback tap) {
-    return InkWell(
-      onTap: tap,
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(10), border: Border.all(color: color)),
-        child: Row(children: [Icon(icon, size: 30, color: color), const SizedBox(width: 20), Text(title, style: TextStyle(fontSize: 18, color: color))]),
-      ),
-    );
   }
 }
