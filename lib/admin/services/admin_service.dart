@@ -1,14 +1,11 @@
-// File: lib/admin/services/admin_service.dart
-
 import 'package:cloud_firestore/cloud_firestore.dart';
-// intl പാക്കേജ് ഇല്ലാത്തതുകൊണ്ട് ഡേറ്റ് ഫോർമാറ്റിംഗിന് തൽക്കാലം അത് ഒഴിവാക്കുന്നു
-// അല്ലെങ്കിൽ pubspec.yaml-ൽ ചേർത്ത ശേഷം import 'package:intl/intl.dart'; ഉപയോഗിക്കാം.
+// import 'package:intl/intl.dart'; // Uncomment if date formatting needed inside service
 
 class AdminService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
   // ==================================================
-  // 1. DASHBOARD OVERVIEW
+  // 1. DASHBOARDASHBOARDD OVERVIEW
   // ==================================================
   Future<Map<String, dynamic>> getDashboardStats() async {
     try {
@@ -20,8 +17,16 @@ class AdminService {
       var staff = await _db.collection('users').where('isActive', isEqualTo: true).get();
       int totalStaff = staff.docs.length;
 
-      // ലളിതമായ ടോട്ടൽ കണക്ക്
-      double collected = 0; // ഇവിടെ പിന്നീട് ഫീസ് കളക്ഷൻ ലോജിക് വെക്കാം
+      DateTime now = DateTime.now();
+      DateTime startOfMonth = DateTime(now.year, now.month, 1);
+      var fees = await _db.collection('fees_collected')
+          .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfMonth))
+          .get();
+      
+      double collected = 0;
+      for (var doc in fees.docs) {
+        collected += (doc['amount'] ?? 0);
+      }
 
       return {
         'totalStudents': totalStudents,
@@ -61,7 +66,6 @@ class AdminService {
     });
   }
 
-  // (Error Fix: deleteAcademicYear missing)
   Future<void> deleteAcademicYear(String docId) async {
     await _db.collection('academic_years').doc(docId).delete();
   }
@@ -78,47 +82,38 @@ class AdminService {
     }
   }
 
-  // Helper: Get Next Serial No for Students
-  Future<int> _generateNextSerialNo(String className, String gender) async {
-    final snapshot = await _db.collection('students')
-        .where('className', isEqualTo: className)
-        .where('gender', isEqualTo: gender)
-        .get();
-    return snapshot.docs.length + 1;
+  // --- CLASS OPERATIONS ---
+  Stream<QuerySnapshot> getClasses() {
+    return _db.collection('classes').orderBy('name').snapshots();
   }
 
-  // (Error Fix: mergeClasses missing)
+  Future<void> addClass(String className) async {
+    await _db.collection('classes').add({
+      'name': className,
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+  }
+
   Future<void> mergeClasses(String classA, String classB, String targetClass) async {
-    // ക്ലാസ്സ് A യിലെയും B യിലെയും കുട്ടികളെ എടുക്കുന്നു
     final studentsA = await _db.collection('students').where('className', isEqualTo: classA).where('isActive', isEqualTo: true).get();
     final studentsB = await _db.collection('students').where('className', isEqualTo: classB).where('isActive', isEqualTo: true).get();
     
     List<QueryDocumentSnapshot> allStudents = [...studentsA.docs, ...studentsB.docs];
     final batch = _db.batch();
     
-    // പുതിയ സീരിയൽ നമ്പർ
     int nextMaleSerial = await _generateNextSerialNo(targetClass, "Male");
     int nextFemaleSerial = await _generateNextSerialNo(targetClass, "Female");
 
     for (var doc in allStudents) {
       String gender = doc['gender'];
       int serialToUse = (gender == "Male") ? nextMaleSerial++ : nextFemaleSerial++;
-      
-      batch.update(doc.reference, {
-        'className': targetClass, 
-        'serialNo': serialToUse
-      });
+      batch.update(doc.reference, {'className': targetClass, 'serialNo': serialToUse});
     }
     await batch.commit();
   }
 
-  // Split Logic (Placeholder for future)
-  Future<void> moveSelectedStudents(List<String> studentIds, String targetClass) async {
-    // Logic implementation
-  }
-
   // ==================================================
-  // 3. HR MANAGEMENT (STAFF)
+  // 3. HR MANAGEMENT
   // ==================================================
   Stream<QuerySnapshot> getStaffList() {
     return _db.collection('users').orderBy('createdAt', descending: true).snapshots();
@@ -146,7 +141,6 @@ class AdminService {
     await _db.collection('users').doc(docId).delete();
   }
 
-  // (Error Fix: toggleUserStatus missing)
   Future<void> toggleUserStatus(String docId, bool currentStatus) async {
     await _db.collection('users').doc(docId).update({'isActive': !currentStatus});
   }
@@ -154,20 +148,16 @@ class AdminService {
   // ==================================================
   // 4. STUDENT MANAGEMENT
   // ==================================================
-  Stream<QuerySnapshot> getClasses() {
-    return _db.collection('classes').orderBy('name').snapshots();
-  }
-
-  Future<void> addClass(String className) async {
-    await _db.collection('classes').add({
-      'name': className,
-      'createdAt': FieldValue.serverTimestamp(),
-    });
-  }
-
   Stream<QuerySnapshot> getStudents() {
-    // ലളിതമായ സോർട്ടിംഗ് (എറർ ഒഴിവാക്കാൻ)
     return _db.collection('students').orderBy('createdAt', descending: true).snapshots();
+  }
+
+  Future<int> _generateNextSerialNo(String className, String gender) async {
+    final snapshot = await _db.collection('students')
+        .where('className', isEqualTo: className)
+        .where('gender', isEqualTo: gender)
+        .get();
+    return snapshot.docs.length + 1;
   }
 
   Future<void> addStudent({
@@ -182,7 +172,6 @@ class AdminService {
     });
   }
 
-  // (Error Fix: updateStudent missing)
   Future<void> updateStudent(String docId, Map<String, dynamic> data) async {
     await _db.collection('students').doc(docId).update(data);
   }
@@ -191,7 +180,6 @@ class AdminService {
     await _db.collection('students').doc(docId).delete();
   }
 
-  // (Error Fix: deleteBulkStudents missing)
   Future<void> deleteBulkStudents(List<String> docIds) async {
     final batch = _db.batch();
     for (var id in docIds) {
@@ -200,7 +188,6 @@ class AdminService {
     await batch.commit();
   }
 
-  // (Error Fix: addBulkStudents missing)
   Future<void> addBulkStudents(String className, String gender, List<Map<String, String>> studentsData) async {
     final batch = _db.batch();
     int currentSerial = await _generateNextSerialNo(className, gender);
@@ -225,8 +212,10 @@ class AdminService {
   }
 
   // ==================================================
-  // 5. FEE & NOTICES
+  // 5. FEE STRUCTURE & DEFAULT FEES (THE FIX)
   // ==================================================
+  
+  // Custom Fee Structures
   Stream<QuerySnapshot> getFeeStructures() => _db.collection('fee_structures').snapshots();
 
   Future<void> addFeeStructure(String name, double amount, String type) async {
@@ -239,7 +228,43 @@ class AdminService {
     await _db.collection('fee_structures').doc(docId).delete();
   }
 
-  // (Error Fix: getNotices & addNotice missing)
+  // --- MISSING METHODS ADDED HERE ---
+  
+  // Get Default Monthly Fees
+  Stream<QuerySnapshot> getDefaultFees() {
+    return _db.collection('default_fees').orderBy('order').snapshots();
+  }
+
+  // Generate 12 Months Default Fee
+  Future<void> initDefaultFeeStructure(String academicYearId, double amount) async {
+    List<String> months = [
+      "June", "July", "August", "September", "October", "November", 
+      "December", "January", "February", "March", "April", "May"
+    ];
+    
+    // Check if already exists to avoid duplicates (Optional but good)
+    final existing = await _db.collection('default_fees').limit(1).get();
+    if(existing.docs.isNotEmpty) {
+       // Logic to update or skip. For now, we assume simple generation.
+    }
+
+    final batch = _db.batch();
+    for(int i=0; i<months.length; i++) {
+      var ref = _db.collection('default_fees').doc(); // Auto ID
+      batch.set(ref, {
+        'month': months[i],
+        'order': i+1,
+        'amount': amount,
+        'academicYearId': academicYearId, // Can be used later for filtering
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+    }
+    await batch.commit();
+  }
+
+  // ==================================================
+  // 6. NOTICES
+  // ==================================================
   Stream<QuerySnapshot> getNotices() {
     return _db.collection('notices').orderBy('date', descending: true).snapshots();
   }
@@ -250,6 +275,21 @@ class AdminService {
       'description': description,
       'target': target,
       'date': FieldValue.serverTimestamp()
+    });
+  }
+  
+  // ==================================================
+  // 7. PUBLIC CONTENT (GALLERY)
+  // ==================================================
+  Stream<QuerySnapshot> getGallery() {
+    return _db.collection('gallery').orderBy('createdAt', descending: true).snapshots();
+  }
+  
+  Future<void> addGalleryImage(String url, String caption) async {
+    await _db.collection('gallery').add({
+      'imageUrl': url, 
+      'caption': caption, 
+      'createdAt': FieldValue.serverTimestamp()
     });
   }
 }
